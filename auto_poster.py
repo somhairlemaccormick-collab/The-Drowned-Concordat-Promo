@@ -9,7 +9,7 @@ POSTS = [
         "Behind the sea walls of the European Delta, the food is grown in vats "
         "and the truth is rationed. Dive into Book One of The Drowned Concordat: "
         "The Rise of the Covenant. Available now on Amazon! 🌊📚 "
-        "https://www.amazon.com/dp/YOUR_ASIN_HERE"
+        "https://www.amazon.com/dp/B0HJLRN48X"
     ),
     (
         "“The water took the world it knew. What's left feeds five hundred million people — "
@@ -19,7 +19,7 @@ POSTS = [
     (
         "Dr. Elara Di Canti built the chemistry that keeps a drowned hemisphere fed, "
         "but what does it cost the soul? Discover The Drowned Concordat today. "
-        "🔗 https://www.amazon.com/dp/YOUR_ASIN_HERE"
+        "🔗 https://www.amazon.com/dp/B0HJLRN48X"
     ),
 ]
 
@@ -37,8 +37,9 @@ def send_to_social_media(message):
     # Example: If using a webhook for automation tools like Make.com or Zapier:
     webhook_url = os.environ.get("SOCIAL_WEBHOOK_URL")
     if webhook_url:
-        response = requests.post(webhook_url, json={"text": message})
-        print(f"Status: {response.status_code}")
+        response = requests.post(webhook_url, json={"text": message}, timeout=30)
+        print(f"Status: {response.status_code} {response.text[:200]}")
+        response.raise_for_status()
     else:
         print("Webhook URL not found. Running in test mode.")
 
