@@ -1,0 +1,29 @@
+name: Book Promo Automation
+
+on:
+  schedule:
+    # Runs every Tuesday and Thursday at 17:00 UTC
+    - cron: '0 17 * * 2,4'
+  workflow_dispatch: # Allows you to trigger it manually anytime with a click
+
+jobs:
+  run-poster:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run script
+        env:
+          SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
+        run: |
+          python auto_poster.py
