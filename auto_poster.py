@@ -11,6 +11,7 @@ IMAGE_BASE = (
 HASHTAGS = "#TheDrownedConcordat #HamishCRannoch #scifi #dystopian #bookstagram #scifibooks"
 
 # Each post pairs a caption with an image from images/instagram/.
+# Only promote published books (currently Book One) — never Business Time.
 # Instagram captions don't make links clickable, so links are written out plainly.
 POSTS = [
     {
@@ -48,33 +49,20 @@ POSTS = [
         ),
     },
     {
-        "image": "series-all-six-covers-ig.jpg",
+        "image": "art-surveillance-street-vertical-ig.jpg",
         "text": (
-            "Three novels. Three novellas. One drowned world. "
-            "The Drowned Concordat by Hamish C. Rannoch — start with Book One, "
-            "The Rise of the Covenant. https://thedrownedconcordat.com/"
+            "Surveillance is safety. Obey. Work. Consume. "
+            "Welcome to the Delta, where the Bulwark keeps the sea out — and keeps everyone else in line. "
+            "The Drowned Concordat, Book One: The Rise of the Covenant. "
+            "https://www.amazon.com/dp/B0HJLRN48X"
         ),
     },
     {
-        "image": "novella-rounding-error-ebook-ig.jpg",
+        "image": "art-surveillance-street-wide-ig.jpg",
         "text": (
-            "Five friends. One ration system. And an arithmetic gap nobody else noticed. "
-            "The Rounding Error — a darkly comic novella from the world of The Drowned Concordat."
-        ),
-    },
-    {
-        "image": "novella-business-time-ebook-ig.jpg",
-        "text": (
-            "Greg just wants to get ahead in the Delta. How hard can it be? "
-            "Business Time — a darkly comic novella from the world of The Drowned Concordat."
-        ),
-    },
-    {
-        "image": "novella-where-they-grew-ebook-ig.jpg",
-        "text": (
-            "A covert Enforcer unit is sent to count the faithful. "
-            "The bodies tell them something the numbers can't. "
-            "Where They Grew — a novella from the world of The Drowned Concordat."
+            "Somewhere below the screens and the ration lines, a congregation is growing. "
+            "The Drowned Concordat, Book One: The Rise of the Covenant — out now on Kindle. "
+            "https://thedrownedconcordat.com/"
         ),
     },
 ]
