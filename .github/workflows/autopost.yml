@@ -59,6 +59,7 @@ jobs:
           git commit -m "Daily promo post (run ${{ github.run_number }})"
           git pull --rebase origin main
           git push origin HEAD:main
+          echo "PUBLISHED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Send to Make (Instagram)
         env:

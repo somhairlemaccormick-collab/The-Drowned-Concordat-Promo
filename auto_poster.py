@@ -36,6 +36,7 @@ RAW_BASE = (
     "https://raw.githubusercontent.com/somhairlemaccormick-collab/"
     "The-Drowned-Concordat-Promo/main/"
 )
+CDN_BASE = "https://cdn.jsdelivr.net/gh/somhairlemaccormick-collab/The-Drowned-Concordat-Promo@{sha}/"
 
 HASHTAGS = (
     "#TheDrownedConcordat #HamishCRannoch #scifi #dystopian #climatefiction "
@@ -503,7 +504,11 @@ def post():
     import requests
 
     data = json.loads(POST_FILE.read_text(encoding="utf-8"))
-    image_url = RAW_BASE + data["image_path"]
+    # jsDelivr serves files from the public repo with proper types (video/mp4,
+    # image/jpeg), which Instagram needs; pinning to the commit avoids stale caches.
+    sha = os.environ.get("PUBLISHED_SHA", "").strip()
+    base = CDN_BASE.format(sha=sha) if sha else RAW_BASE
+    image_url = base + data["image_path"]
     wait_until_public(image_url)
     print(f"Caption:\n{data['text']}\nImage: {image_url}")
 
