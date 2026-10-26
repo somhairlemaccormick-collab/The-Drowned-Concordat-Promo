@@ -2,9 +2,21 @@ name: Book Promo Automation
 
 on:
   schedule:
-    # Runs every Tuesday and Thursday at 17:00 UTC
-    - cron: '0 17 * * 2,4'
-  workflow_dispatch: # Allows you to trigger it manually anytime with a click
+    # Every day at 17:00 UTC (18:00 Amsterdam in winter, 19:00 in summer)
+    - cron: '0 17 * * *'
+  workflow_dispatch: # Run it by hand from the Actions tab
+    inputs:
+      dry_run:
+        description: 'Make the card but do NOT post to Instagram'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # needed to commit each day's card so Instagram can fetch it
+
+concurrency:
+  group: promo
+  cancel-in-progress: false
 
 jobs:
   run-poster:
@@ -19,11 +31,22 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: |
-          pip install requests
+        run: pip install requests pillow
 
-      - name: Run script
+      - name: Make today's card
+        run: python auto_poster.py build
+
+      - name: Publish the card to the repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add generated
+          git commit -m "Daily promo card (run ${{ github.run_number }})"
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Send to Make (Instagram)
         env:
           SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
-        run: |
-          python auto_poster.py
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: python auto_poster.py post
