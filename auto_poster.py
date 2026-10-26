@@ -440,6 +440,16 @@ def draw_reel(text, bg_path, out_path):
         raise RuntimeError("ffmpeg failed")
 
 
+def youtube_title(text, limit=100):
+    """YouTube titles: max 100 characters, no < or >. Ends with #Shorts."""
+    suffix = " #Shorts"
+    clean = text.replace("<", "").replace(">", "")
+    room = limit - len(suffix)
+    if len(clean) > room:
+        clean = clean[: room - 1].rsplit(" ", 1)[0].rstrip(",.;:—- ") + "…"
+    return clean + suffix
+
+
 # ------------------------------------------------------------------ steps ---
 
 def build(n=None, kind=None):
@@ -459,7 +469,8 @@ def build(n=None, kind=None):
         text, bg, cta = pick(n + REEL_OFFSET)
         card = card.with_suffix(".mp4")
         draw_reel(text, bg, card)
-        caption, source = f"{text}\n\n{cta}\n\n{HASHTAGS}", bg.name
+        caption, source = f"{text}\n\n{cta}\n\n{HASHTAGS} #Shorts", bg.name
+        title = youtube_title(text)
     elif kind == "amazon":
         headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
         cover = COVERS[week % len(COVERS)]
@@ -481,6 +492,8 @@ def build(n=None, kind=None):
         "image_path": card.relative_to(ROOT).as_posix(),
         "background": source,
     }
+    if kind == "reel":
+        post["title"] = title
     POST_FILE.write_text(json.dumps(post, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"Post #{n + 1} ({kind})\nCaption:\n{caption}\nImage source: {source}\nCard: {post['image_path']}")
     return post
@@ -520,6 +533,8 @@ def post():
         print("Webhook URL not found. Running in test mode.")
         return
     payload = {"kind": data.get("kind", "quote"), "text": data["text"]}
+    if data.get("title"):
+        payload["title"] = data["title"]
     if image_url.endswith(".mp4"):
         payload["video_url"] = image_url
         payload["file_name"] = data["image_path"].rsplit("/", 1)[-1]
