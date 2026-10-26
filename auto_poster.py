@@ -8,6 +8,9 @@ Each run:
   3. `post`   - waits until the card is publicly reachable, then sends the caption
                 and image URL to the Make webhook, which publishes to Instagram.
 
+Every day at 17:00 UTC: a quote card. Extra posts at 10:00 UTC: a website card on
+Wednesdays and an Amazon card on Saturdays.
+
 Rules: promote only published books (currently Book One). Never Business Time.
 No spoilers: lines.txt holds setting and premise level text only.
 """
@@ -193,15 +196,143 @@ def draw_card(text, bg_path, out_path):
     im.save(out_path, "JPEG", quality=90, optimize=True)
 
 
+# ---------------------------------------------------- weekly link posts ---
+# Extra posts on top of the daily quote card: Wednesday points to the website,
+# Saturday to Amazon. Each has a few headline/caption variants that rotate weekly.
+
+WEBSITE_URL = "https://thedrownedconcordat.com/"
+AMAZON_URL = "https://www.amazon.com/dp/B0HJLRN48X"
+
+COVERS = [ROOT / "images" / "book1-rise-of-the-covenant-ebook.jpg",
+          ROOT / "images" / "book1-rise-of-the-covenant-painted.jpg"]
+
+WEBSITE_POSTS = [
+    ("Step inside the Delta.",
+     "Step inside the world of The Drowned Concordat: the Delta, the Bulwark and the books. 🌊"),
+    ("New to the Delta? Start here.",
+     "New to The Drowned Concordat? The series, the world and the author, all in one place."),
+    ("The world behind the wall.",
+     "Find out more about the drowned world of Hamish C. Rannoch's Drowned Concordat series."),
+]
+
+AMAZON_POSTS = [
+    ("Out now on Kindle",
+     "📖 The Rise of the Covenant, Book One of The Drowned Concordat, is out now on Kindle."),
+    ("Book One is waiting",
+     "Your next dystopian read is waiting behind the Bulwark. Get Book One on Kindle 👇"),
+    ("Start the series",
+     "Five hundred million people. Not one meal grown in soil. "
+     "Start The Drowned Concordat with Book One, out now on Kindle."),
+]
+
+
+def post_kind():
+    """Which card to make. The workflow sets POST_KIND from the schedule that fired
+    (daily 17:00 UTC = quote, Wed 10:00 UTC = website, Sat 10:00 UTC = amazon)."""
+    kind = os.environ.get("POST_KIND", "").strip().lower()
+    return kind if kind in {"quote", "website", "amazon"} else "quote"
+
+
+START = datetime(2026, 10, 22, tzinfo=timezone.utc)  # day 0 of the quote rotation
+
+
+def day_number(now=None):
+    """Days since START. Drives the rotation, so extra runs never skip a quote."""
+    return ((now or datetime.now(timezone.utc)) - START).days
+
+
+def _footer(d):
+    from PIL import ImageFont
+
+    margin = 90
+    d.text((margin, H - 95), "THE DROWNED CONCORDAT · BOOK ONE",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed.ttf"), 26), fill=GREY)
+    d.text((W - margin, H - 95), "HAMISH C. RANNOCH",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed-Bold.ttf"), 26),
+           fill=ORANGE, anchor="ra")
+
+
+def draw_amazon_card(headline, cover_path, out_path):
+    """Book One cover on a blurred version of itself, with a Kindle call to action."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+    cover = Image.open(cover_path).convert("RGB")
+    r = max(W / cover.width, H / cover.height)
+    bg = cover.resize((round(cover.width * r), round(cover.height * r)), Image.LANCZOS)
+    left, top = (bg.width - W) // 2, (bg.height - H) // 2
+    bg = bg.crop((left, top, left + W, top + H)).filter(ImageFilter.GaussianBlur(40))
+    im = Image.blend(bg, Image.new("RGB", (W, H), INK), 0.72)
+
+    ch = 860
+    c = cover.resize((round(cover.width * ch / cover.height), ch), Image.LANCZOS)
+    cx, cy = (W - c.width) // 2, 70
+    shadow = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ImageDraw.Draw(shadow).rectangle((cx + 10, cy + 18, cx + c.width + 10, cy + ch + 18), fill=(0, 0, 0, 190))
+    shadow = shadow.filter(ImageFilter.GaussianBlur(22))
+    im.paste(shadow, (0, 0), shadow)
+    im.paste(c, (cx, cy))
+
+    d = ImageDraw.Draw(im)
+    y = cy + ch + 55
+    d.text((W // 2, y), headline.upper(), anchor="ma",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed-Bold.ttf"), 44), fill=ORANGE)
+    d.text((W // 2, y + 70), "The Rise of the Covenant", anchor="ma",
+           font=ImageFont.truetype(str(FONTS / "FreeSerifItalic.ttf"), 58), fill=CREAM)
+    d.text((W // 2, y + 150), "Find it on Amazon · link in caption", anchor="ma",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed.ttf"), 28), fill=GREY)
+    _footer(d)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    im.save(out_path, "JPEG", quality=90, optimize=True)
+
+
+def draw_website_card(headline, bg_path, out_path):
+    """Delta artwork with a headline and the website address."""
+    from PIL import ImageDraw, ImageFont
+
+    im = _darken(_background(bg_path))
+    d = ImageDraw.Draw(im)
+    margin = 90
+    font, lines, size = _fit_text(d, headline, FONTS / "FreeSerifItalic.ttf", W - 2 * margin, max_lines=3)
+    lh = int(size * 1.22)
+    y = H - 330 - lh * len(lines)
+    _series_mark(d, margin, y - 90)
+    for i, l in enumerate(lines):
+        d.text((margin, y + i * lh), l, font=font, fill=CREAM)
+    rule_y = y + lh * len(lines) + 28
+    d.line((margin, rule_y, margin + 80, rule_y), fill=ORANGE, width=4)
+    d.text((margin, rule_y + 26), "THEDROWNEDCONCORDAT.COM",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed-Bold.ttf"), 50), fill=ORANGE)
+    d.text((margin, rule_y + 95), "The books · the world · the author",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed.ttf"), 30), fill=CREAM)
+    _footer(d)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    im.save(out_path, "JPEG", quality=90, optimize=True)
+
+
 # ------------------------------------------------------------------ steps ---
 
-def build(n=None):
+def build(n=None, kind=None):
     if n is None:
-        n = int(os.environ.get("GITHUB_RUN_NUMBER", "1")) - 1
-    text, bg, cta = pick(n)
+        n = day_number()
+    kind = kind or post_kind()
+    week = n // 7
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    card = GENERATED / f"{stamp}-post{n + 1:04d}.jpg"
-    draw_card(text, bg, card)
+    card = GENERATED / f"{stamp}-{kind}-{os.environ.get('GITHUB_RUN_NUMBER', 'local')}.jpg"
+
+    if kind == "website":
+        headline, body = WEBSITE_POSTS[week % len(WEBSITE_POSTS)]
+        bg = load_backgrounds()[week % len(load_backgrounds())]
+        draw_website_card(headline, bg, card)
+        caption, source = f"{body}\n\n🔗 {WEBSITE_URL}\n\n{HASHTAGS}", bg.name
+    elif kind == "amazon":
+        headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
+        cover = COVERS[week % len(COVERS)]
+        draw_amazon_card(headline, cover, card)
+        caption, source = f"{body}\n\n🔗 {AMAZON_URL}\n\n{HASHTAGS}", cover.name
+    else:
+        text, bg, cta = pick(n)
+        draw_card(text, bg, card)
+        caption, source = f"{text}\n\n{cta}\n\n{HASHTAGS}", bg.name
 
     # keep only the most recent cards
     old = sorted(GENERATED.glob("*.jpg"))[:-KEEP_CARDS]
@@ -209,12 +340,13 @@ def build(n=None):
         p.unlink()
 
     post = {
-        "text": f"{text}\n\n{cta}\n\n{HASHTAGS}",
+        "kind": kind,
+        "text": caption,
         "image_path": card.relative_to(ROOT).as_posix(),
-        "background": bg.name,
+        "background": source,
     }
     POST_FILE.write_text(json.dumps(post, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Post #{n + 1}: {text}\nBackground: {bg.name}\nCard: {post['image_path']}")
+    print(f"Post #{n + 1} ({kind})\nCaption:\n{caption}\nImage source: {source}\nCard: {post['image_path']}")
     return post
 
 

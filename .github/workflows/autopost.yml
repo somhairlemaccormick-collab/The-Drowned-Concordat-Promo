@@ -2,10 +2,17 @@ name: Book Promo Automation
 
 on:
   schedule:
-    # Every day at 17:00 UTC (18:00 Amsterdam in winter, 19:00 in summer)
-    - cron: '0 17 * * *'
+    # Times are UTC (Amsterdam is +1 in winter, +2 in summer)
+    - cron: '0 17 * * *'   # every day: quote card
+    - cron: '0 10 * * 3'   # Wednesday extra: website card
+    - cron: '0 10 * * 6'   # Saturday extra: Amazon card
   workflow_dispatch: # Run it by hand from the Actions tab
     inputs:
+      kind:
+        description: 'Which card to make'
+        type: choice
+        options: [quote, website, amazon]
+        default: quote
       dry_run:
         description: 'Make the card but do NOT post to Instagram'
         type: boolean
@@ -34,6 +41,12 @@ jobs:
         run: pip install requests pillow
 
       - name: Make today's card
+        env:
+          POST_KIND: >-
+            ${{ github.event_name == 'workflow_dispatch' && inputs.kind
+             || github.event.schedule == '0 10 * * 3' && 'website'
+             || github.event.schedule == '0 10 * * 6' && 'amazon'
+             || 'quote' }}
         run: python auto_poster.py build
 
       - name: Publish the card to the repo
