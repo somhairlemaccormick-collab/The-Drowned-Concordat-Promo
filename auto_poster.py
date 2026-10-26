@@ -30,6 +30,7 @@ FONTS = ROOT / "fonts"
 GENERATED = ROOT / "generated"
 POST_FILE = ROOT / "post.json"
 KEEP_CARDS = 30  # older generated cards are deleted to keep the repo small
+KEEP_VIDEOS = 14
 
 RAW_BASE = (
     "https://raw.githubusercontent.com/somhairlemaccormick-collab/"
@@ -230,7 +231,7 @@ def post_kind():
     """Which card to make. The workflow sets POST_KIND from the schedule that fired
     (daily 17:00 UTC = quote, Wed 10:00 UTC = website, Sat 10:00 UTC = amazon)."""
     kind = os.environ.get("POST_KIND", "").strip().lower()
-    return kind if kind in {"quote", "website", "amazon"} else "quote"
+    return kind if kind in {"quote", "reel", "website", "amazon"} else "quote"
 
 
 START = datetime(2026, 10, 22, tzinfo=timezone.utc)  # day 0 of the quote rotation
@@ -309,6 +310,135 @@ def draw_website_card(headline, bg_path, out_path):
     im.save(out_path, "JPEG", quality=90, optimize=True)
 
 
+# ------------------------------------------------------------ daily reel ---
+# A 10-second 1080x1920 video for Instagram Reels and TikTok: a slow pan across
+# the artwork under the day's line. Text is kept clear of the areas TikTok and
+# Instagram cover with their own buttons and captions (right edge, bottom).
+# It has a silent audio track so a trending sound can be added in TikTok.
+
+VW, VH, FPS, SECONDS = 1080, 1920, 30, 10
+REEL_OFFSET = 20  # use a different line/background from the same day's photo card
+
+
+def _ffmpeg():
+    import shutil
+
+    exe = shutil.which("ffmpeg")
+    if exe:
+        return exe
+    import imageio_ffmpeg
+
+    return imageio_ffmpeg.get_ffmpeg_exe()
+
+
+def _ease(x):
+    x = max(0.0, min(1.0, x))
+    return x * x * (3 - 2 * x)
+
+
+def _reel_text_layer(text):
+    """Transparent 1080x1920 layer with the line, labels and series mark."""
+    from PIL import Image, ImageDraw, ImageFilter, ImageFont
+
+    layer = Image.new("RGBA", (VW, VH), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    left, max_w = 80, 840  # leave the right edge for TikTok's buttons
+    font, lines, size = _fit_text(d, text, FONTS / "FreeSerifItalic.ttf", max_w, max_lines=6)
+    lh = int(size * 1.24)
+    block = 90 + lh * len(lines) + 150
+    y = max(1110, 1330 - block // 2)
+
+    mark_y = y
+    y += 90
+    shadow = Image.new("RGBA", (VW, VH), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(shadow)
+    for i, l in enumerate(lines):
+        sd.text((left + 2, y + i * lh + 3), l, font=font, fill=(0, 0, 0, 220))
+    layer.alpha_composite(shadow.filter(ImageFilter.GaussianBlur(7)))
+    d = ImageDraw.Draw(layer)
+    _series_mark(d, left, mark_y)
+    for i, l in enumerate(lines):
+        d.text((left, y + i * lh), l, font=font, fill=CREAM + (255,))
+    rule_y = y + lh * len(lines) + 28
+    d.line((left, rule_y, left + 80, rule_y), fill=ORANGE + (255,), width=4)
+    d.text((left, rule_y + 22), "THE RISE OF THE COVENANT · OUT NOW",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed-Bold.ttf"), 32), fill=CREAM + (255,))
+    d.text((left, rule_y + 70), "THE DROWNED CONCORDAT · HAMISH C. RANNOCH",
+           font=ImageFont.truetype(str(FONTS / "DejaVuSansCondensed.ttf"), 26), fill=ORANGE + (255,))
+    return layer
+
+
+def draw_reel(text, bg_path, out_path):
+    import subprocess
+
+    from PIL import Image, ImageFilter
+
+    src = Image.open(bg_path).convert("RGB")
+    landscape = src.width / src.height >= 1
+
+    # static, blurred, very dark fill behind everything
+    r = max(VW / src.width, VH / src.height)
+    fill = src.resize((round(src.width * r), round(src.height * r)), Image.LANCZOS)
+    fx, fy = (fill.width - VW) // 2, (fill.height - VH) // 2
+    fill = fill.crop((fx, fy, fx + VW, fy + VH)).filter(ImageFilter.GaussianBlur(40))
+    base = Image.blend(fill, Image.new("RGB", (VW, VH), INK), 0.7)
+
+    # darkening gradient so the text area is calm
+    grad = Image.new("L", (1, VH))
+    for y in range(VH):
+        f = y / VH
+        start = 0.45 if landscape else 0.38
+        grad.putpixel((0, y), int(255 * (0.0 if f < start else min(0.92, 0.92 * ((f - start) / 0.2)))))
+    grad = grad.resize((VW, VH))
+    ink = Image.new("RGB", (VW, VH), INK)
+
+    if landscape:
+        band_h, band_y = 1000, 120
+        s = band_h / src.height
+        band = src.resize((round(src.width * s), band_h), Image.LANCZOS)
+        travel = max(0, band.width - VW)
+        mask = Image.new("L", (VW, band_h), 255)
+        for y in range(band_h):
+            a = min(1.0, y / 110, (band_h - y) / 260)
+            mask.paste(int(255 * max(0.0, a)), (0, y, VW, y + 1))
+    else:
+        s = max(VW / src.width, VH / src.height)
+
+    layer = _reel_text_layer(text)
+    alpha = layer.getchannel("A")
+
+    cmd = [_ffmpeg(), "-y", "-loglevel", "error",
+           "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{VW}x{VH}", "-r", str(FPS), "-i", "-",
+           "-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo",
+           "-shortest", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+           "-pix_fmt", "yuv420p", "-profile:v", "high", "-movflags", "+faststart",
+           "-c:a", "aac", "-b:a", "128k", str(out_path)]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
+
+    frames = FPS * SECONDS
+    for i in range(frames):
+        t = i / (frames - 1)
+        frame = base.copy()
+        if landscape:
+            x = travel * _ease(t)
+            part = band.transform((VW, band_h), Image.EXTENT, (x, 0, x + VW, band_h), Image.BICUBIC)
+            frame.paste(part, (0, band_y), mask)
+        else:
+            z = 1.0 + 0.10 * _ease(t)  # slow push-in
+            vw, vh = VW / (s * z), VH / (s * z)
+            cx, cy = src.width / 2, src.height * 0.45
+            box = (cx - vw / 2, max(0, cy - vh / 2), cx + vw / 2, max(0, cy - vh / 2) + vh)
+            frame = src.transform((VW, VH), Image.EXTENT, box, Image.BICUBIC)
+        frame = Image.composite(ink, frame, grad)
+        # text is on screen from the first frame, so the Reel/TikTok thumbnail shows it
+        frame.paste(layer, (0, 0), alpha)
+        proc.stdin.write(frame.tobytes())
+    proc.stdin.close()
+    if proc.wait() != 0:
+        raise RuntimeError("ffmpeg failed")
+
+
 # ------------------------------------------------------------------ steps ---
 
 def build(n=None, kind=None):
@@ -324,6 +454,11 @@ def build(n=None, kind=None):
         bg = load_backgrounds()[week % len(load_backgrounds())]
         draw_website_card(headline, bg, card)
         caption, source = f"{body}\n\n🔗 {WEBSITE_URL}\n\n{HASHTAGS}", bg.name
+    elif kind == "reel":
+        text, bg, cta = pick(n + REEL_OFFSET)
+        card = card.with_suffix(".mp4")
+        draw_reel(text, bg, card)
+        caption, source = f"{text}\n\n{cta}\n\n{HASHTAGS}", bg.name
     elif kind == "amazon":
         headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
         cover = COVERS[week % len(COVERS)]
@@ -334,10 +469,10 @@ def build(n=None, kind=None):
         draw_card(text, bg, card)
         caption, source = f"{text}\n\n{cta}\n\n{HASHTAGS}", bg.name
 
-    # keep only the most recent cards
-    old = sorted(GENERATED.glob("*.jpg"))[:-KEEP_CARDS]
-    for p in old:
-        p.unlink()
+    # keep only the most recent cards and videos
+    for pattern, keep in (("*.jpg", KEEP_CARDS), ("*.mp4", KEEP_VIDEOS)):
+        for p in sorted(GENERATED.glob(pattern))[:-keep]:
+            p.unlink()
 
     post = {
         "kind": kind,
@@ -356,7 +491,8 @@ def wait_until_public(url, timeout=180):
     deadline = time.time() + timeout
     while time.time() < deadline:
         r = requests.head(url, timeout=20)
-        if r.status_code == 200 and r.headers.get("content-type", "").startswith("image/"):
+        if r.status_code == 200:
+            print(f"Public: {url} ({r.headers.get('content-type')}, {r.headers.get('content-length')} bytes)")
             return
         print(f"Waiting for card to go public ({r.status_code})…")
         time.sleep(10)
@@ -378,7 +514,13 @@ def post():
     if not webhook_url:
         print("Webhook URL not found. Running in test mode.")
         return
-    response = requests.post(webhook_url, json={"text": data["text"], "image_url": image_url}, timeout=30)
+    payload = {"kind": data.get("kind", "quote"), "text": data["text"]}
+    if image_url.endswith(".mp4"):
+        payload["video_url"] = image_url
+        payload["file_name"] = data["image_path"].rsplit("/", 1)[-1]
+    else:
+        payload["image_url"] = image_url
+    response = requests.post(webhook_url, json=payload, timeout=30)
     print(f"Status: {response.status_code} {response.text[:200]}")
     response.raise_for_status()
 

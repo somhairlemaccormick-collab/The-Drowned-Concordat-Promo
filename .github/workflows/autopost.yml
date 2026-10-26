@@ -6,12 +6,13 @@ on:
     - cron: '0 17 * * *'   # every day: quote card
     - cron: '0 10 * * 3'   # Wednesday extra: website card
     - cron: '0 10 * * 6'   # Saturday extra: Amazon card
+    - cron: '0 12 * * *'   # every day: Reel video (also saved to Drive for TikTok)
   workflow_dispatch: # Run it by hand from the Actions tab
     inputs:
       kind:
         description: 'Which card to make'
         type: choice
-        options: [quote, website, amazon]
+        options: [quote, reel, website, amazon]
         default: quote
       dry_run:
         description: 'Make the card but do NOT post to Instagram'
@@ -38,7 +39,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install requests pillow
+        run: pip install requests pillow imageio-ffmpeg
 
       - name: Make today's card
         env:
@@ -46,6 +47,7 @@ jobs:
             ${{ github.event_name == 'workflow_dispatch' && inputs.kind
              || github.event.schedule == '0 10 * * 3' && 'website'
              || github.event.schedule == '0 10 * * 6' && 'amazon'
+             || github.event.schedule == '0 12 * * *' && 'reel'
              || 'quote' }}
         run: python auto_poster.py build
 
@@ -54,7 +56,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add generated
-          git commit -m "Daily promo card (run ${{ github.run_number }})"
+          git commit -m "Daily promo post (run ${{ github.run_number }})"
           git pull --rebase origin main
           git push origin HEAD:main
 
