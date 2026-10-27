@@ -1,0 +1,478 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Space+Grotesk:wght@300;400;500;600&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-deep: #05060a;
+    --bg-panel: #0b0e16;
+    --line: rgba(255,255,255,0.08);
+    --text-main: #e8e6df;
+    --text-dim: #8b8f9c;
+    --accent: #7fd8ff;
+    --accent-warm: #d9a86c;
+    --accent-glow: rgba(127, 216, 255, 0.35);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: 'Space Grotesk', sans-serif;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Starfield */
+  .stars, .stars2, .stars3 {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    background: transparent;
+    z-index: 0;
+  }
+  .stars { background-image:
+    radial-gradient(1px 1px at 20px 30px, #fff, transparent),
+    radial-gradient(1px 1px at 140px 80px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 300px 150px, #fff, transparent),
+    radial-gradient(1px 1px at 400px 60px, #fff, transparent),
+    radial-gradient(1px 1px at 520px 220px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 640px 40px, #fff, transparent),
+    radial-gradient(1px 1px at 760px 180px, #fff, transparent),
+    radial-gradient(1px 1px at 880px 100px, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 90px 260px, #fff, transparent),
+    radial-gradient(1px 1px at 1000px 300px, #fff, transparent);
+    background-repeat: repeat;
+    background-size: 1100px 500px;
+    opacity: 0.5;
+  }
+  .stars2 { background-image:
+    radial-gradient(1px 1px at 60px 120px, var(--accent), transparent),
+    radial-gradient(1px 1px at 220px 200px, var(--accent), transparent),
+    radial-gradient(1px 1px at 480px 40px, var(--accent), transparent),
+    radial-gradient(1px 1px at 700px 260px, var(--accent), transparent),
+    radial-gradient(1px 1px at 950px 150px, var(--accent), transparent);
+    background-repeat: repeat;
+    background-size: 1100px 500px;
+    opacity: 0.35;
+  }
+
+  .glow-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .glow-orb.one { width: 500px; height: 500px; background: var(--accent-glow); top: -150px; right: -100px; }
+  .glow-orb.two { width: 400px; height: 400px; background: rgba(217,168,108,0.15); bottom: 10%; left: -150px; }
+
+  header, main, footer { position: relative; z-index: 1; }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 32px 6vw;
+    border-bottom: 1px solid var(--line);
+  }
+  .pen-name {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+  }
+  nav a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-left: 36px;
+    transition: color 0.25s ease;
+  }
+  nav a:hover { color: var(--accent); }
+
+  .hero {
+    min-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 6vw;
+  }
+  .eyebrow {
+    font-size: 0.8rem;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 28px;
+  }
+  .hero h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: clamp(3.2rem, 9vw, 7.5rem);
+    line-height: 0.95;
+    letter-spacing: 0.01em;
+    background: linear-gradient(180deg, #ffffff 0%, #b9c2cf 60%, #6f7889 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .hero .subtitle {
+    margin-top: 26px;
+    font-size: clamp(1rem, 1.6vw, 1.25rem);
+    color: var(--text-dim);
+    font-weight: 300;
+    max-width: 560px;
+    line-height: 1.6;
+  }
+  .hero .subtitle em { color: var(--accent-warm); font-style: italic; }
+
+  .cta-row {
+    margin-top: 46px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .btn {
+    padding: 15px 34px;
+    border-radius: 2px;
+    font-size: 0.82rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    display: inline-block;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #05060a;
+    font-weight: 600;
+    box-shadow: 0 0 30px var(--accent-glow);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 40px var(--accent-glow); }
+  .btn-ghost {
+    border: 1px solid var(--line);
+    color: var(--text-main);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  .scroll-cue {
+    margin-top: 70px;
+    width: 1px;
+    height: 50px;
+    background: linear-gradient(var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  section { padding: 130px 6vw; }
+  .section-head { max-width: 640px; margin: 0 auto 70px; text-align: center; }
+  .section-tag {
+    font-size: 0.78rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+    margin-bottom: 18px;
+  }
+  .section-head h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: clamp(2rem, 4vw, 3rem);
+  }
+  .section-head p {
+    margin-top: 20px;
+    color: var(--text-dim);
+    line-height: 1.75;
+    font-weight: 300;
+  }
+
+  /* Books */
+  .books-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 36px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .book-card {
+    background: linear-gradient(160deg, var(--bg-panel), #05060a);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    overflow: hidden;
+    transition: transform 0.35s ease, border-color 0.35s ease;
+  }
+  .book-card:hover { transform: translateY(-8px); border-color: rgba(127,216,255,0.4); }
+  .book-cover {
+    aspect-ratio: 2/3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(127,216,255,0.18), transparent 55%),
+      radial-gradient(circle at 80% 80%, rgba(217,168,108,0.14), transparent 55%),
+      linear-gradient(200deg, #10131c, #05060a 70%);
+    border-bottom: 1px solid var(--line);
+  }
+  .book-cover .num {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 0.85rem;
+    color: var(--accent-warm);
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+  .book-cover .glyph {
+    width: 46px; height: 46px;
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent);
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.3rem;
+    margin-bottom: 20px;
+    box-shadow: 0 0 22px var(--accent-glow);
+  }
+  .book-cover .placeholder-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.4rem;
+    text-align: center;
+    padding: 0 24px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .book-cover.has-art {
+    padding: 0;
+    display: block;
+  }
+  .book-cover .cover-art {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .book-meta { padding: 22px 22px 26px; }
+  .book-meta .status {
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .book-meta h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 1.3rem;
+    margin-top: 10px;
+    color: var(--text-dim);
+  }
+  .book-meta .teaser {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+
+  /* About */
+  .about-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 60px;
+    align-items: start;
+  }
+  .author-mark {
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 35% 30%, rgba(127,216,255,0.25), transparent 60%),
+      linear-gradient(160deg, #10131c, #05060a);
+    border: 1px solid var(--line);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    font-size: 3rem;
+    color: var(--accent);
+    box-shadow: 0 0 50px rgba(127,216,255,0.12);
+  }
+  .about-text h2 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 2.2rem;
+    margin-bottom: 22px;
+  }
+  .about-text p {
+    color: var(--text-dim);
+    line-height: 1.8;
+    font-weight: 300;
+    margin-bottom: 16px;
+  }
+
+  /* Cast & Factions */
+  .cast-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 30px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .cast-card {
+    background: linear-gradient(160deg, var(--bg-panel), #05060a);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 26px 24px;
+    transition: transform 0.35s ease, border-color 0.35s ease;
+  }
+  .cast-card:hover { transform: translateY(-6px); border-color: rgba(127,216,255,0.4); }
+  .cast-card h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: 1.3rem;
+    color: var(--text-main);
+  }
+  .cast-card .cast-role {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+    margin-top: 8px;
+  }
+  .cast-card p {
+    margin-top: 14px;
+    font-size: 0.88rem;
+    line-height: 1.65;
+    color: var(--text-dim);
+    font-weight: 300;
+  }
+  .subsection-head {
+    max-width: 640px;
+    margin: 0 auto 50px;
+    text-align: center;
+  }
+  .subsection-head .section-tag {
+    font-size: 0.78rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--accent-warm);
+    margin-bottom: 14px;
+  }
+  .subsection-head h3 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+    font-size: clamp(1.5rem, 3vw, 2.1rem);
+    color: var(--text-main);
+  }
+
+  footer {
+    padding: 60px 6vw 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+    border-top: 1px solid var(--line);
+  }
+  .footer-mark {
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  .socials { display: flex; gap: 22px; }
+  .socials a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.25s ease;
+  }
+  .socials a:hover { color: var(--accent); }
+
+  .placeholder-note {
+    text-align: center;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: rgba(139,143,156,0.6);
+    padding: 18px 6vw 40px;
+    font-style: italic;
+  }
+
+  @media (max-width: 800px) {
+    .books-grid { grid-template-columns: 1fr; }
+    .about-wrap { grid-template-columns: 1fr; }
+    .author-mark { margin: 0 auto; }
+    nav a { margin-left: 18px; }
+  }
+
+  .btn-buy {
+    display: inline-block;
+    margin-top: 18px;
+    padding: 12px 24px;
+    border-radius: 2px;
+    background: var(--accent);
+    color: #05060a;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: 0 0 22px var(--accent-glow);
+    transition: all 0.3s ease;
+  }
+  .btn-buy:hover { transform: translateY(-2px); box-shadow: 0 0 34px var(--accent-glow); }
+  nav a.nav-buy { color: var(--accent); }
+</style>
+
+  <header>
+    <a href="index.html" class="pen-name" style="text-decoration:none;">Hamish C. Rannoch</a>
+    <nav>
+      <a href="books.html">The Series</a>
+      <a href="books.html#novellas">Novellas</a>
+      <a href="cast.html">Cast &amp; Factions</a>
+      <a href="#about">About</a>
+      <a class="nav-buy" href="https://www.amazon.com/dp/B0HJLRN48X" target="_blank" rel="noopener">Buy Book One</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="eyebrow">A Science Fiction Series</div>
+      <h1>The Drowned<br>Concordat</h1>
+      <p class="subtitle">Behind the walls of a sealed-off Netherlands, the food is grown in vats and the truth is rationed like everything else. Elara Di Canti has never doubted the system — she's devoted her life to keeping it running, certain it's the righteous thing to do. What it costs the soul is a different question. <em>The Drowned Concordat</em> — by Hamish C. Rannoch.</p>
+      <div class="cta-row">
+        <a href="https://www.amazon.com/dp/B0HJLRN48X" class="btn btn-primary" target="_blank" rel="noopener">Buy Book One on Kindle</a>
+        <a href="books.html" class="btn btn-ghost">Explore the Series</a>
+        <a href="cast.html" class="btn btn-ghost">Meet the Cast</a>
+      </div>
+      <div class="scroll-cue"></div>
+    </section>
+
+    <section id="about">
+      <div class="about-wrap">
+        <div class="author-mark">HCR</div>
+        <div class="about-text">
+          <h2>About the Author</h2>
+          <p>Hamish C. Rannoch is a writer of hard science fiction and dystopian futures, best known for his gripping trilogy, <em>The Drowned Concordat</em> (<em>The Rise of the Covenant</em>, <em>The Terminal Exodus</em>, and <em>The Sterile Eden</em>).</p>
+          <p>Drawing upon an intricate fascination with advanced chemistry, complex systems, and structural logistics, Rannoch crafts hard-edged narratives set against the backdrop of flooded coastlines, hyper-dense arcologies, and subterranean resistance movements. His work explores the gritty intersection of human resilience, large-scale technological adaptation, and the quiet ideological costs of survival.</p>
+          <p>When he isn't mapping out dystopian political friction and resource allocation algorithms, he can usually be found deep in research or tinkering with chemical architecture. He lives and writes in Europe.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="footer-mark">Hamish C. Rannoch — The Drowned Concordat</div>
+    <div class="socials">
+      <a href="https://www.instagram.com/hamish.c.rannoch/" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://www.tiktok.com/@hamish.c.rannoch" target="_blank" rel="noopener">TikTok</a>
+      <a href="mailto:hamish.c.rannoch@gmail.com">Contact</a>
+    </div>
+  </footer>
