@@ -37,6 +37,8 @@ RAW_BASE = (
     "The-Drowned-Concordat-Promo/main/"
 )
 CDN_BASE = "https://cdn.jsdelivr.net/gh/somhairlemaccormick-collab/The-Drowned-Concordat-Promo@{sha}/"
+# GitHub Pages for this repo: serves every file with the right type and no size cap.
+PAGES_BASE = "https://somhairlemaccormick-collab.github.io/The-Drowned-Concordat-Promo/"
 
 HASHTAGS = (
     "#TheDrownedConcordat #HamishCRannoch #scifi #dystopian #climatefiction "
@@ -499,30 +501,50 @@ def build(n=None, kind=None):
     return post
 
 
-def wait_until_public(url, timeout=180):
+def _head_ok(url):
     import requests
 
-    deadline = time.time() + timeout
-    while time.time() < deadline:
-        r = requests.head(url, timeout=20)
-        if r.status_code == 200:
-            print(f"Public: {url} ({r.headers.get('content-type')}, {r.headers.get('content-length')} bytes)")
-            return
-        print(f"Waiting for card to go public ({r.status_code})…")
-        time.sleep(10)
-    raise RuntimeError(f"Card never became public: {url}")
+    try:
+        r = requests.head(url, timeout=20, allow_redirects=True)
+    except requests.RequestException:
+        return None
+    if r.status_code == 200 and not r.headers.get("content-type", "").startswith("text/"):
+        return r
+    return None
+
+
+def public_url(path, sha):
+    """Find a public link Instagram/YouTube can fetch, in order of reliability:
+    1. GitHub Pages (if enabled for the repo) - waits for the new file to deploy
+    2. jsDelivr pinned to the commit - can refuse files once the repo passes 50 MB
+    3. GitHub raw - works, but serves videos with a generic type
+    """
+    pages_on = _head_ok(PAGES_BASE + "fonts/FreeSerifItalic.ttf") is not None
+    candidates = []
+    if pages_on:
+        candidates.append((PAGES_BASE + path, 600))
+    if sha:
+        candidates.append((CDN_BASE.format(sha=sha) + path, 120))
+    candidates.append((RAW_BASE + path, 180))
+
+    for url, timeout in candidates:
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            r = _head_ok(url)
+            if r:
+                print(f"Public: {url} ({r.headers.get('content-type')}, {r.headers.get('content-length')} bytes)")
+                return url
+            time.sleep(15)
+        print(f"Not reachable, trying next host: {url}")
+    raise RuntimeError(f"File never became public: {path}")
 
 
 def post():
     import requests
 
     data = json.loads(POST_FILE.read_text(encoding="utf-8"))
-    # jsDelivr serves files from the public repo with proper types (video/mp4,
-    # image/jpeg), which Instagram needs; pinning to the commit avoids stale caches.
     sha = os.environ.get("PUBLISHED_SHA", "").strip()
-    base = CDN_BASE.format(sha=sha) if sha else RAW_BASE
-    image_url = base + data["image_path"]
-    wait_until_public(image_url)
+    image_url = public_url(data["image_path"], sha)
     print(f"Caption:\n{data['text']}\nImage: {image_url}")
 
     if os.environ.get("DRY_RUN", "").lower() == "true":
