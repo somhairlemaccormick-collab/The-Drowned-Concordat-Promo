@@ -1028,7 +1028,9 @@ def post():
 
     if kind == "carousel":
         urls = [public_url(p, sha) for p in data["image_paths"]]
-        payload = {"kind": "carousel", "text": data["text"], "image_urls": urls}
+        payload = {"kind": "carousel", "text": data["text"], "image_urls": urls,
+                   # ready-made list for Make's Instagram "Create a carousel post" module
+                   "files": [{"media_type": "IMAGE", "image_url": u} for u in urls]}
         # numbered fields too, for mapping into Make's carousel module slot by slot
         for i, u in enumerate(urls, start=1):
             payload[f"image_url_{i}"] = u
