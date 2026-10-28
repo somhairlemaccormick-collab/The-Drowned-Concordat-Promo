@@ -55,12 +55,13 @@ HASHTAGS = "#TheDrownedConcordat #dystopianbooks #scifibooks #climatefiction #bo
 # Rotating calls to action under each line. Instagram captions don't make links
 # clickable, so links are written out plainly.
 CALLS_TO_ACTION = [
-    "📖 The Rise of the Covenant, Book One of The Drowned Concordat, out now on Kindle.\n"
-    f"🔗 {AMAZON_URL}",
+    # Captions that opened with or leaned on links did worst on the account, so
+    # most daily posts point to the bio; the full link goes out one day in three
+    # (and always on the Wednesday website / Saturday Amazon posts).
+    "📖 The Rise of the Covenant, Book One of The Drowned Concordat. Out now on Kindle, link in bio.",
     "🌊 Step behind the Bulwark. The Drowned Concordat, Book One: The Rise of the Covenant.\n"
-    f"🔗 {WEBSITE_URL}",
-    "📚 Start the series with Book One, The Rise of the Covenant. Available now on Kindle.\n"
     f"🔗 {AMAZON_URL}",
+    "📚 Start the series with Book One, The Rise of the Covenant. Link in bio.",
 ]
 
 # A question after the line gives people a reason to comment.

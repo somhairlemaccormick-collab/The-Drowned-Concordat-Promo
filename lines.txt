@@ -12,6 +12,9 @@
 # The tags and asterisks never appear in the caption.
 
 [card] The sea took the world it knew. The Bulwark keeps what's *left*.
+# Two of the best-performing captions on the account so far (Aug 2026): short, quiet, human.
+[card] Four sectors apart. Longer than that, *some days*.
+[card] Some things you *keep* anyway.
 [ration] Five hundred million people. Not one meal grown in *soil*.
 [record] Behind the sea walls of the Delta, the food is grown in vats and the *truth* is rationed.
 [ration] In the Delta, *real food* is something only the richest have ever tasted.
