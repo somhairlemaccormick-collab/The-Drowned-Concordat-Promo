@@ -7,12 +7,14 @@ on:
     - cron: '13 10 * * 3'   # Wednesday extra: website card
     - cron: '13 10 * * 6'   # Saturday extra: Amazon card
     - cron: '23 12 * * *'   # every day: Reel video (also saved to Drive for TikTok)
+    - cron: '13 10 * * 1'   # Monday extra: carousel
+    - cron: '13 10 * * 5'   # Friday extra: carousel
   workflow_dispatch: # Run it by hand from the Actions tab
     inputs:
       kind:
         description: 'Which card to make'
         type: choice
-        options: [quote, reel, website, amazon]
+        options: [quote, reel, carousel, website, amazon]
         default: quote
       dry_run:
         description: 'Make the card but do NOT post to Instagram'
@@ -48,6 +50,8 @@ jobs:
              || github.event.schedule == '13 10 * * 3' && 'website'
              || github.event.schedule == '13 10 * * 6' && 'amazon'
              || github.event.schedule == '23 12 * * *' && 'reel'
+             || github.event.schedule == '13 10 * * 1' && 'carousel'
+             || github.event.schedule == '13 10 * * 5' && 'carousel'
              || 'quote' }}
         run: python auto_poster.py build
 
@@ -65,4 +69,7 @@ jobs:
         env:
           SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          # Carousels are only sent once Make has a carousel route: set the repo
+          # variable CAROUSELS_ENABLED to true (Settings > Secrets and variables > Actions > Variables)
+          CAROUSELS_ENABLED: ${{ vars.CAROUSELS_ENABLED }}
         run: python auto_poster.py post
