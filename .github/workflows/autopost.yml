@@ -2,14 +2,15 @@ name: Book Promo Automation
 
 on:
   schedule:
-    # Times are UTC (Amsterdam is +1 in winter, +2 in summer)
-    - cron: '37 7 * * *'    # every day: morning quote card (test slot)
-    - cron: '7 17 * * *'    # every day: evening quote card
-    - cron: '13 10 * * 3'   # Wednesday extra: website card
-    - cron: '13 10 * * 6'   # Saturday extra: Amazon card
-    - cron: '23 12 * * *'   # every day: Reel video (also saved to Drive for TikTok)
-    - cron: '13 10 * * 1'   # Monday extra: carousel
-    - cron: '13 10 * * 5'   # Friday extra: carousel
+    # Times are UTC (Amsterdam is +1 in winter, +2 in summer). Odd minutes, away from
+    # GitHub's busiest hours, so the free scheduler is less likely to run late.
+    - cron: '47 6 * * *'    # every day: morning quote card (test slot)
+    - cron: '51 15 * * *'    # every day: evening quote card
+    - cron: '43 9 * * 3'   # Wednesday extra: website card
+    - cron: '43 9 * * 6'   # Saturday extra: Amazon card
+    - cron: '41 11 * * *'   # every day: Reel video (also saved to Drive for TikTok)
+    - cron: '43 9 * * 1'   # Monday extra: carousel
+    - cron: '43 9 * * 5'   # Friday extra: carousel
   workflow_dispatch: # Run it by hand from the Actions tab
     inputs:
       kind:
@@ -53,15 +54,15 @@ jobs:
         env:
           POST_KIND: >-
             ${{ github.event_name == 'workflow_dispatch' && inputs.kind
-             || github.event.schedule == '13 10 * * 3' && 'website'
-             || github.event.schedule == '13 10 * * 6' && 'amazon'
-             || github.event.schedule == '23 12 * * *' && 'reel'
-             || github.event.schedule == '13 10 * * 1' && 'carousel'
-             || github.event.schedule == '13 10 * * 5' && 'carousel'
+             || github.event.schedule == '43 9 * * 3' && 'website'
+             || github.event.schedule == '43 9 * * 6' && 'amazon'
+             || github.event.schedule == '41 11 * * *' && 'reel'
+             || github.event.schedule == '43 9 * * 1' && 'carousel'
+             || github.event.schedule == '43 9 * * 5' && 'carousel'
              || 'quote' }}
           POST_SLOT: >-
             ${{ github.event_name == 'workflow_dispatch' && inputs.slot
-             || github.event.schedule == '37 7 * * *' && 'am'
+             || github.event.schedule == '47 6 * * *' && 'am'
              || 'pm' }}
         run: python auto_poster.py build
 
