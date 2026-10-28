@@ -894,7 +894,7 @@ def youtube_title(text, limit=100):
 # ------------------------------------------------------------------ steps ---
 
 def post_kind():
-    """Which post to make. The workflow sets POST_KIND from the schedule that fired."""
+    """Which post to make. The workflow sets POST_KIND (and POST_SLOT for quote cards) from the schedule that fired."""
     kind = os.environ.get("POST_KIND", "").strip().lower()
     return kind if kind in {"quote", "reel", "website", "amazon", "carousel"} else "quote"
 
@@ -924,6 +924,78 @@ def draw_quote(line, bg, out_path, n):
     return fmt, text
 
 
+# ------------------------------------------------------ test and learn ---
+# strategy.json holds the current mix: how often each card design is used and a
+# short list of proven lines that get repeated more often. A weekly review
+# (tools/analyze.py) rewrites it from real Instagram results. Every post is
+# logged to log/posts.csv so results can be matched back to what was posted.
+
+STRATEGY_FILE = ROOT / "strategy.json"
+LOG_FILE = ROOT / "log" / "posts.csv"
+DEFAULT_STRATEGY = {
+    "format_weights": {"card": 1.0, "poster": 1.0, "record": 1.0, "ration": 1.0, "pitch": 0.5},
+    "favourite_lines": [],
+    "favourite_share": 0.25,
+}
+
+
+def load_strategy():
+    try:
+        data = json.loads(STRATEGY_FILE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        data = {}
+    out = dict(DEFAULT_STRATEGY)
+    out.update({k: v for k, v in data.items() if k in DEFAULT_STRATEGY})
+    return out
+
+
+def post_slot():
+    slot = os.environ.get("POST_SLOT", "").strip().lower()
+    return slot if slot in {"am", "pm"} else "pm"
+
+
+def choose_quote(n, slot):
+    """Pick (line, background, cta, prompt_index) for a quote card.
+
+    The card design is drawn at random using the strategy's weights, so every
+    design keeps being tested while the winners appear more often. Some posts
+    reuse a proven line instead. Lines of each design rotate in order.
+    """
+    lines, bgs = load_lines(), load_backgrounds()
+    strat = load_strategy()
+    off = 1 if slot == "am" else 0
+    k = n * 2 + off  # one step per quote post
+    rng = random.Random(f"{n}-{slot}")
+
+    favs = [l for l in lines if plain(parse_line(l)[1]) in set(strat["favourite_lines"])]
+    if favs and rng.random() < float(strat["favourite_share"]):
+        line = favs[k % len(favs)]
+    else:
+        by_fmt = {}
+        for l in lines:
+            by_fmt.setdefault(parse_line(l)[0], []).append(l)
+        fmts = [f for f in by_fmt if strat["format_weights"].get(f, 1.0) > 0]
+        weights = [strat["format_weights"].get(f, 1.0) for f in fmts]
+        fmt = rng.choices(fmts, weights=weights)[0]
+        cands = by_fmt[fmt]
+        line = cands[(n + off * 3) % len(cands)]
+    return line, bgs[k % len(bgs)], CALLS_TO_ACTION[k % len(CALLS_TO_ACTION)], k
+
+
+def log_post(slot, kind, fmt, line, caption):
+    """Append one row to log/posts.csv (kept in the repo)."""
+    import csv
+
+    LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    new = not LOG_FILE.exists()
+    with LOG_FILE.open("a", newline="", encoding="utf-8") as fh:
+        w = csv.writer(fh)
+        if new:
+            w.writerow(["posted_utc", "slot", "kind", "format", "line", "caption_start"])
+        start = " ".join(caption.split())[:60]
+        w.writerow([datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M"), slot, kind, fmt, plain(line), start])
+
+
 def build(n=None, kind=None):
     if n is None:
         n = day_number()
@@ -940,6 +1012,7 @@ def build(n=None, kind=None):
         bg = load_backgrounds()[week % len(load_backgrounds())]
         draw_website_card(headline, bg, card)
         caption, source = f"{body}\n\n🔗 {WEBSITE_URL}\n\n{HASHTAGS}", bg.name
+        log_fmt, log_line = "website", headline
     elif kind == "reel":
         line, bg, cta = pick(n + REEL_OFFSET)
         fmt, text = parse_line(line)
@@ -947,25 +1020,35 @@ def build(n=None, kind=None):
         draw_reel(text, bg, card, kicker=kicker_for(fmt, n), cover_path=COVERS[week % len(COVERS)])
         caption, source = f"{plain(text)}\n\n{prompt}\n\n{cta}\n\n{HASHTAGS} #Shorts", bg.name
         title = youtube_title(text)
+        log_fmt, log_line = "reel", text
     elif kind == "amazon":
         headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
         cover = COVERS[week % len(COVERS)]
         draw_amazon_card(headline, cover, card)
         caption, source = f"{body}\n\n🔗 {AMAZON_URL}\n\n{HASHTAGS}", cover.name
+        log_fmt, log_line = "amazon", headline
     elif kind == "carousel":
         # Mondays and Fridays: two carousels a week, rotating through CAROUSELS
         index = week * 2 + (1 if datetime.now(timezone.utc).weekday() >= 3 else 0)
         paths, caption = build_carousel(index, stamp, run)
         card, source = paths[0], f"carousel {index % len(CAROUSELS) + 1}"
+        log_fmt, log_line = f"carousel-{index % len(CAROUSELS) + 1}", CAROUSELS[index % len(CAROUSELS)]["slides"][0][1]
     else:
-        line, bg, cta = pick(n)
-        fmt, text = draw_quote(line, bg, card, n)
+        slot = post_slot()
+        card = GENERATED / f"{stamp}-{kind}-{slot}-{run}.jpg"
+        line, bg, cta, k = choose_quote(n, slot)
+        fmt, text = draw_quote(line, bg, card, k)
+        prompt = COMMENT_PROMPTS[k % len(COMMENT_PROMPTS)]
         caption, source = f"{plain(text)}\n\n{prompt}\n\n{cta}\n\n{HASHTAGS}", f"{bg.name} ({fmt})"
+        log_fmt, log_line = fmt, text
 
     # keep only the most recent cards and videos
     for pattern, keep in (("*.jpg", KEEP_CARDS), ("*.mp4", KEEP_VIDEOS)):
         for p in sorted(GENERATED.glob(pattern))[:-keep]:
             p.unlink()
+
+    if os.environ.get("GITHUB_ACTIONS") == "true":
+        log_post(post_slot() if kind == "quote" else "-", kind, log_fmt, log_line, caption)
 
     post = {
         "kind": kind,

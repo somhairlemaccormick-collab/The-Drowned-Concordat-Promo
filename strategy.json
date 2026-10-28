@@ -1,0 +1,16 @@
+{
+  "format_weights": {
+    "card": 1.0,
+    "poster": 1.0,
+    "record": 1.0,
+    "ration": 1.0,
+    "pitch": 0.5
+  },
+  "favourite_lines": [
+    "Four sectors apart. Longer than that, some days.",
+    "Some things you keep anyway."
+  ],
+  "favourite_share": 0.15,
+  "updated": "2026-10-28",
+  "notes": "Starting mix: every design tested equally (reader-pitch lines at half weight); the two best past captions repeat on ~15% of quote posts. Rewritten weekly by tools/analyze.py."
+}

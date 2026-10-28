@@ -3,7 +3,8 @@ name: Book Promo Automation
 on:
   schedule:
     # Times are UTC (Amsterdam is +1 in winter, +2 in summer)
-    - cron: '7 17 * * *'    # every day: quote card
+    - cron: '37 7 * * *'    # every day: morning quote card (test slot)
+    - cron: '7 17 * * *'    # every day: evening quote card
     - cron: '13 10 * * 3'   # Wednesday extra: website card
     - cron: '13 10 * * 6'   # Saturday extra: Amazon card
     - cron: '23 12 * * *'   # every day: Reel video (also saved to Drive for TikTok)
@@ -16,6 +17,11 @@ on:
         type: choice
         options: [quote, reel, carousel, website, amazon]
         default: quote
+      slot:
+        description: 'Quote cards only: morning or evening slot'
+        type: choice
+        options: [pm, am]
+        default: pm
       dry_run:
         description: 'Make the card but do NOT post to Instagram'
         type: boolean
@@ -53,13 +59,17 @@ jobs:
              || github.event.schedule == '13 10 * * 1' && 'carousel'
              || github.event.schedule == '13 10 * * 5' && 'carousel'
              || 'quote' }}
+          POST_SLOT: >-
+            ${{ github.event_name == 'workflow_dispatch' && inputs.slot
+             || github.event.schedule == '37 7 * * *' && 'am'
+             || 'pm' }}
         run: python auto_poster.py build
 
       - name: Publish the card to the repo
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add generated
+          git add generated log
           git commit -m "Daily promo post (run ${{ github.run_number }})"
           git pull --rebase origin main
           git push origin HEAD:main
