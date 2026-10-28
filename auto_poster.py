@@ -1036,8 +1036,8 @@ def post():
             payload[f"image_url_{i}"] = u
         payload["slide_count"] = len(urls)
         print(f"Caption:\n{data['text']}\nSlides:\n" + "\n".join(urls))
-        if os.environ.get("CAROUSELS_ENABLED", "").lower() != "true":
-            print("Carousels are not switched on yet (repo variable CAROUSELS_ENABLED). Not sending to Make.")
+        if os.environ.get("CAROUSELS_ENABLED", "").lower() == "false":
+            print("Carousels are switched off (repo variable CAROUSELS_ENABLED=false). Not sending to Make.")
             return
     else:
         image_url = public_url(data["image_path"], sha)
