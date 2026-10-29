@@ -10,8 +10,11 @@ on:
         description: 'Script file in author/scripts/'
         default: '01-the-delta.txt'
       voice:
-        description: 'alan, or a VCTK speaker such as p252'
-        default: 'alan'
+        description: 'alan, or a VCTK speaker such as p281'
+        default: 'p281'
+      pace:
+        description: 'Speaking pace (1 = normal, higher = slower)'
+        default: '1.25'
 
 permissions:
   contents: write
@@ -45,11 +48,13 @@ jobs:
           V="${{ inputs.voice }}"
           TXT=$(tr '\n' ' ' < "author/scripts/${{ inputs.script }}")
           if [ "$V" = "alan" ]; then
-            echo "$TXT" | piper --model alan.onnx --length_scale 1.08 --sentence_silence 0.35 --output_file speech.wav
+            echo "$TXT" | piper --model alan.onnx --length_scale ${{ inputs.pace }} --sentence_silence 0.45 --output_file raw.wav
           else
             id=$(python3 -c "import json; print(json.load(open('vctk.onnx.json'))['speaker_id_map']['$V'])")
-            echo "$TXT" | piper --model vctk.onnx --speaker $id --length_scale 1.1 --sentence_silence 0.35 --output_file speech.wav
+            echo "$TXT" | piper --model vctk.onnx --speaker $id --length_scale ${{ inputs.pace }} --sentence_silence 0.45 --output_file raw.wav
           fi
+          # Hamish's sound: a touch deeper (~1 semitone), more low end, slight rasp
+          ffmpeg -v error -y -i raw.wav -af "aresample=44100,rubberband=pitch=0.93:formant=preserved,bass=g=5:f=110:w=0.8,equalizer=f=320:t=q:w=1.2:g=1.5,equalizer=f=3500:t=q:w=1.5:g=-1.5,asoftclip=type=tanh:threshold=0.7,lowpass=f=8500,acompressor=threshold=0.15:ratio=2.5:attack=10:release=150,loudnorm=I=-16:TP=-1.5" -ac 1 -ar 16000 speech.wav
           ffprobe -v error -show_entries format=duration -of csv=p=0 speech.wav
           } 2>&1 | tee -a log.txt
       - name: Face (SadTalker)
