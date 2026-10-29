@@ -1,0 +1,21 @@
+name: KingMonkai retitle
+on:
+  push:
+    branches: [yt-retitle]
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send retitle requests to Make
+        env:
+          SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
+        run: |
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          for post in json.load(open("posts.json", encoding="utf-8")):
+              req = urllib.request.Request(os.environ["SOCIAL_WEBHOOK_URL"], data=json.dumps(post).encode(),
+                                           headers={"Content-Type": "application/json"})
+              print(post["video_id"], post["title"], "->", urllib.request.urlopen(req, timeout=60).read().decode())
+              time.sleep(8)
+          PY
