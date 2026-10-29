@@ -903,7 +903,15 @@ START = datetime(2026, 10, 22, tzinfo=timezone.utc)  # day 0 of the quote rotati
 
 
 def day_number(now=None):
-    """Days since START. Drives the rotation, so extra runs never skip a quote."""
+    """Days since START. Drives the rotation, so extra runs never skip a quote.
+
+    POST_DATE=YYYY-MM-DD (set by a manual run) makes the run produce that day's
+    posts instead, e.g. to catch up on a day the scheduler skipped.
+    """
+    forced = os.environ.get("POST_DATE", "").strip()
+    if forced and now is None:
+        now = datetime.strptime(forced, "%Y-%m-%d").replace(hour=12, tzinfo=timezone.utc)
+        print(f"Catch-up run: making the posts for {forced}")
     return ((now or datetime.now(timezone.utc)) - START).days
 
 
