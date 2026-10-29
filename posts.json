@@ -1,1 +1,1 @@
-[{"kind": "yt-read", "video_id": "read", "title": "/v3/channels?part=contentDetails,snippet&mine=true", "file_name": "km-channel.json"}]
+[{"kind": "yt-read", "video_id": "read", "title": "/v3/playlistItems?part=contentDetails&maxResults=50&playlistId=UUUNpiWWXqsW-nfLA1pZHNug", "file_name": "km-uploads.json"}]
