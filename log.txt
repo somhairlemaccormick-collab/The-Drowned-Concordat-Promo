@@ -1,0 +1,90 @@
+[2026-10-29 19:23:03.986] [piper] [info] Loaded voice in 0.1471381 second(s)
+[2026-10-29 19:23:03.986] [piper] [info] Initialized piper
+samples/alan.wav
+[2026-10-29 19:23:04.555] [piper] [info] Real-time factor: 0.056253358071856836 (infer=0.561666182 sec, audio=9.984580498866212 sec)
+[2026-10-29 19:23:04.556] [piper] [info] Terminated piper
+[2026-10-29 19:23:06.572] [piper] [info] Loaded voice in 0.142517343 second(s)
+[2026-10-29 19:23:06.572] [piper] [info] Initialized piper
+samples/vctk-p252.wav
+[2026-10-29 19:23:06.791] [piper] [info] Real-time factor: 0.036266871635684296 (infer=0.213055124 sec, audio=5.874648526077097 sec)
+[2026-10-29 19:23:06.791] [piper] [info] Terminated piper
+[2026-10-29 19:23:06.969] [piper] [info] Loaded voice in 0.139273846 second(s)
+[2026-10-29 19:23:06.969] [piper] [info] Initialized piper
+samples/vctk-p263.wav
+[2026-10-29 19:23:07.316] [piper] [info] Real-time factor: 0.05382890220111811 (infer=0.340599022 sec, audio=6.327437641723356 sec)
+[2026-10-29 19:23:07.316] [piper] [info] Terminated piper
+[2026-10-29 19:23:07.496] [piper] [info] Loaded voice in 0.142095001 second(s)
+[2026-10-29 19:23:07.496] [piper] [info] Initialized piper
+samples/vctk-p272.wav
+[2026-10-29 19:23:07.852] [piper] [info] Real-time factor: 0.05516811758205268 (infer=0.350353825 sec, audio=6.350657596371882 sec)
+[2026-10-29 19:23:07.852] [piper] [info] Terminated piper
+[2026-10-29 19:23:08.040] [piper] [info] Loaded voice in 0.150523809 second(s)
+[2026-10-29 19:23:08.040] [piper] [info] Initialized piper
+samples/vctk-p281.wav
+[2026-10-29 19:23:08.437] [piper] [info] Real-time factor: 0.058830799808784966 (infer=0.390689872 sec, audio=6.640907029478458 sec)
+[2026-10-29 19:23:08.437] [piper] [info] Terminated piper
+[2026-10-29 19:23:08.624] [piper] [info] Loaded voice in 0.147161435 second(s)
+[2026-10-29 19:23:08.624] [piper] [info] Initialized piper
+samples/vctk-p284.wav
+[2026-10-29 19:23:08.918] [piper] [info] Real-time factor: 0.052130645249310666 (infer=0.28809215 sec, audio=5.526349206349206 sec)
+[2026-10-29 19:23:08.918] [piper] [info] Terminated piper
+[2026-10-29 19:23:09.100] [piper] [info] Loaded voice in 0.146368658 second(s)
+[2026-10-29 19:23:09.101] [piper] [info] Initialized piper
+samples/vctk-p285.wav
+[2026-10-29 19:23:09.423] [piper] [info] Real-time factor: 0.05581305061595478 (infer=0.316218267 sec, audio=5.665668934240363 sec)
+[2026-10-29 19:23:09.423] [piper] [info] Terminated piper
+[2026-10-29 19:23:11.704] [piper] [info] Loaded voice in 0.13571744 second(s)
+[2026-10-29 19:23:11.704] [piper] [info] Initialized piper
+samples/semaine-obadiah.wav
+[2026-10-29 19:23:12.088] [piper] [info] Real-time factor: 0.037171305871875004 (infer=0.377613266 sec, audio=10.158730158730158 sec)
+[2026-10-29 19:23:12.088] [piper] [info] Terminated piper
+[2026-10-29 19:23:12.261] [piper] [info] Loaded voice in 0.131135831 second(s)
+[2026-10-29 19:23:12.261] [piper] [info] Initialized piper
+samples/semaine-spike.wav
+[2026-10-29 19:23:12.555] [piper] [info] Real-time factor: 0.033693831739470576 (infer=0.28908543600000003 sec, audio=8.579773242630385 sec)
+[2026-10-29 19:23:12.555] [piper] [info] Terminated piper
+[2026-10-29 19:23:14.020] [piper] [info] Loaded voice in 0.127446127 second(s)
+[2026-10-29 19:23:14.021] [piper] [info] Initialized piper
+samples/northern_english_male.wav
+[2026-10-29 19:23:14.316] [piper] [info] Real-time factor: 0.03558176563280135 (infer=0.28958554799999997 sec, audio=8.13859410430839 sec)
+[2026-10-29 19:23:14.316] [piper] [info] Terminated piper
+[2026-10-29 19:23:14.509] [piper] [info] Loaded voice in 0.151746685 second(s)
+[2026-10-29 19:23:14.509] [piper] [info] Initialized piper
+samples/vctk-p260.wav
+[2026-10-29 19:23:14.727] [piper] [info] Real-time factor: 0.03985177408670176 (infer=0.21283196899999998 sec, audio=5.340589569160998 sec)
+[2026-10-29 19:23:14.727] [piper] [info] Terminated piper
+[2026-10-29 19:23:14.934] [piper] [info] Loaded voice in 0.147351088 second(s)
+[2026-10-29 19:23:14.934] [piper] [info] Initialized piper
+samples/vctk-p286.wav
+[2026-10-29 19:23:15.331] [piper] [info] Real-time factor: 0.053100436267957636 (infer=0.39024124699999996 sec, audio=7.349115646258503 sec)
+[2026-10-29 19:23:15.331] [piper] [info] Terminated piper
+[2026-10-29 19:23:15.513] [piper] [info] Loaded voice in 0.146043785 second(s)
+[2026-10-29 19:23:15.514] [piper] [info] Initialized piper
+samples/vctk-p245.wav
+[2026-10-29 19:23:15.848] [piper] [info] Real-time factor: 0.04362527415976501 (infer=0.328711 sec, audio=7.534875283446713 sec)
+[2026-10-29 19:23:15.848] [piper] [info] Terminated piper
+[2026-10-29 19:23:16.020] [piper] [info] Loaded voice in 0.136330751 second(s)
+[2026-10-29 19:23:16.020] [piper] [info] Initialized piper
+samples/vctk-p292.wav
+[2026-10-29 19:23:16.388] [piper] [info] Real-time factor: 0.05429462161537729 (infer=0.36182625300000004 sec, audio=6.664126984126984 sec)
+[2026-10-29 19:23:16.388] [piper] [info] Terminated piper
+[2026-10-29 19:23:17.949] [piper] [info] Loaded voice in 0.297311019 second(s)
+[2026-10-29 19:23:17.949] [piper] [info] Initialized piper
+samples/norman.wav
+[2026-10-29 19:23:18.439] [piper] [info] Real-time factor: 0.053349378483281855 (infer=0.482500973 sec, audio=9.044172335600907 sec)
+[2026-10-29 19:23:18.439] [piper] [info] Terminated piper
+alan.mp3
+norman.mp3
+northern_english_male.mp3
+semaine-obadiah.mp3
+semaine-spike.mp3
+vctk-p245.mp3
+vctk-p252.mp3
+vctk-p260.mp3
+vctk-p263.mp3
+vctk-p272.mp3
+vctk-p281.mp3
+vctk-p284.mp3
+vctk-p285.mp3
+vctk-p286.mp3
+vctk-p292.mp3
