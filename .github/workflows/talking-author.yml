@@ -1,6 +1,6 @@
 # Makes a talking-head video of Hamish from author/hamish-portrait.png and a script in author/scripts/.
-# Voice: Piper (open-source text-to-speech). Face: SadTalker (open-source, runs on the CPU, so it is slow).
-# Run it from the Actions tab; the finished video is attached to the run as an artifact.
+# Voice: Piper (open-source text-to-speech). Face: SadTalker (open-source, CPU only, so slow).
+# Results (and the log) are pushed to the author-media-video branch.
 name: Talking author video
 
 on:
@@ -10,62 +10,75 @@ on:
         description: 'Script file in author/scripts/'
         default: '01-the-delta.txt'
       voice:
-        description: 'Piper voice'
-        default: 'en_GB-alan-medium'
+        description: 'alan, or a VCTK speaker such as p252'
+        default: 'alan'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   make:
     runs-on: ubuntu-22.04
-    timeout-minutes: 120
+    timeout-minutes: 150
+    env:
+      RESULTS: "talking-author.mp4 talking-author-vertical.mp4 speech.wav"
+      BRANCH: video
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.8'
-
-      - name: System packages
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libsndfile1 > /dev/null
-
-      - name: Voice (Piper)
+      - name: Piper (text-to-speech)
         run: |
-          pip install -q piper-tts==1.2.0
-          V=${{ inputs.voice }}
-          L=$(echo $V | cut -d- -f1); LANG=$(echo $L | cut -d_ -f1); NAME=$(echo $V | cut -d- -f2); Q=$(echo $V | cut -d- -f3)
-          BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/$LANG/$L/$NAME/$Q
-          curl -sSL -o voice.onnx $BASE/$V.onnx
-          curl -sSL -o voice.onnx.json $BASE/$V.onnx.json
-          tr '\n' ' ' < "author/scripts/${{ inputs.script }}" | piper --model voice.onnx --length_scale 1.08 --sentence_silence 0.35 --output_file speech.wav
+          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
+          echo "$PWD/piper" >> $GITHUB_PATH
+          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB
+          curl -sSL -o alan.onnx $H/alan/medium/en_GB-alan-medium.onnx
+          curl -sSL -o alan.onnx.json $H/alan/medium/en_GB-alan-medium.onnx.json
+          curl -sSL -o vctk.onnx $H/vctk/medium/en_GB-vctk-medium.onnx
+          curl -sSL -o vctk.onnx.json $H/vctk/medium/en_GB-vctk-medium.onnx.json
+      - name: Voice
+        run: |
+          set -o pipefail
+          {
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libsndfile1 > /dev/null
+          V="${{ inputs.voice }}"
+          TXT=$(tr '\n' ' ' < "author/scripts/${{ inputs.script }}")
+          if [ "$V" = "alan" ]; then
+            echo "$TXT" | piper --model alan.onnx --length_scale 1.08 --sentence_silence 0.35 --output_file speech.wav
+          else
+            id=$(python3 -c "import json; print(json.load(open('vctk.onnx.json'))['speaker_id_map']['$V'])")
+            echo "$TXT" | piper --model vctk.onnx --speaker $id --length_scale 1.1 --sentence_silence 0.35 --output_file speech.wav
+          fi
           ffprobe -v error -show_entries format=duration -of csv=p=0 speech.wav
-
+          } 2>&1 | tee -a log.txt
       - name: Face (SadTalker)
         run: |
+          set -o pipefail
+          {
           git clone -q --depth 1 https://github.com/OpenTalker/SadTalker.git
           cd SadTalker
           pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install -q -r requirements.txt
-          bash scripts/download_models.sh > /dev/null
+          bash scripts/download_models.sh > /dev/null 2>&1
+          ls checkpoints gfpgan/weights || true
           python -c "from PIL import Image; Image.open('../author/hamish-portrait.png').convert('RGB').save('../portrait.jpg', quality=95)"
           python inference.py --driven_audio ../speech.wav --source_image ../portrait.jpg \
             --result_dir ../out --still --preprocess full --enhancer gfpgan --cpu --size 256
           ls -R ../out
-
-      - name: Finish (subtitles-free, Shorts-friendly 9:16 version too)
+          } 2>&1 | tee -a ../log.txt
+      - name: Finish
         run: |
           F=$(find out -name '*.mp4' | head -1)
           cp "$F" talking-author.mp4
-          # 1080x1920 version: portrait centred on a blurred copy of itself
           ffmpeg -v error -y -i talking-author.mp4 -filter_complex \
             "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=-0.15[bg];[0:v]scale=1080:-2[fg];[bg][fg]overlay=0:(H-h)/2" \
             -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 160k talking-author-vertical.mp4
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: talking-author
-          path: |
-            talking-author.mp4
-            talking-author-vertical.mp4
-            speech.wav
+      - name: Save results to the author-media branch
+        if: always()
+        run: |
+          mkdir -p pub && cp -r $RESULTS pub/ 2>/dev/null || true
+          cp log.txt pub/ 2>/dev/null || true
+          cd pub && git init -q -b author-media && git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "$GITHUB_WORKFLOW run $GITHUB_RUN_NUMBER"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:refs/heads/author-media-$BRANCH
