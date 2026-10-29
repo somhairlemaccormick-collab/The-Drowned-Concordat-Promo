@@ -13,6 +13,10 @@ on:
       id:
         description: 'Episode id (blank = next unposted)'
         default: ''
+      sharpen:
+        description: 'Sharpen the face with GFPGAN (much slower on GitHub machines)'
+        type: boolean
+        default: false
       dry_run:
         description: 'Build and publish the file but do NOT send to Make'
         type: boolean
@@ -59,9 +63,10 @@ jobs:
           pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
           pip install -q -r requirements.txt
           bash scripts/download_models.sh > /dev/null 2>&1
+          ENH=""; [ "${{ inputs.sharpen }}" = "true" ] && ENH="--enhancer gfpgan"
           for part in open close; do
             python inference.py --driven_audio ../work/$part-16k.wav --source_image ../work/portrait.jpg \
-              --result_dir ../work/st-$part --still --preprocess full --enhancer gfpgan --cpu --size 256
+              --result_dir ../work/st-$part --still --preprocess full $ENH --cpu --size 256
             cp "$(find ../work/st-$part -name '*.mp4' | head -1)" ../work/$part.mp4
           done
 
