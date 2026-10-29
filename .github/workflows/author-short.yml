@@ -74,6 +74,8 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # a test (dry) run doesn't count the episode as posted
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}" = "true" ]; then git checkout author/posted.txt; fi
           git add generated author/posted.txt
           git commit -m "Author Short: ${{ steps.voice.outputs.episode }} (run ${{ github.run_number }})"
           git pull --rebase origin main
