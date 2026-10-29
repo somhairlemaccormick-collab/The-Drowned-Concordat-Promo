@@ -74,6 +74,33 @@ def nice(date):
     return datetime.strptime(date, "%Y-%m-%d").strftime("%-d %b %Y")
 
 
+def publish(video, fname, yt_title, text, privacy, label):
+    """Force-push an orphan commit (video + post.json + workflow) to zwift-media; GitHub sends it to Make."""
+    work = tempfile.mkdtemp()
+    br = os.path.join(work, "branch")
+    os.makedirs(os.path.join(br, ".github", "workflows"))
+    shutil.copy(video, os.path.join(br, fname))
+    shutil.copy(os.path.join(HERE, "zwift-post.yml"), os.path.join(br, ".github", "workflows", "zwift-post.yml"))
+    json.dump({"title": yt_title, "text": text, "file_name": fname, "privacy": privacy},
+              open(os.path.join(br, "post.json"), "w"), indent=1)
+    url = git("remote", "get-url", "origin").strip()
+    git("init", "-q", "-b", "zwift-media", cwd=br)
+    git("add", "-A", cwd=br)
+    git(*BOT, "commit", "-qm", label, cwd=br)
+    git("push", "-f", url, "zwift-media", cwd=br)
+    print("Pushed to zwift-media; GitHub will send it to Make.")
+
+
+def record(path, line, label):
+    """Append a line to a tracking file on main and push it."""
+    git("pull", "-q", "--rebase", "origin", "main")
+    with open(path, "a") as f:
+        f.write(line + "\n")
+    git("add", path)
+    git(*BOT, "commit", "-qm", label)
+    git("push", "-q", "origin", "HEAD:main")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--clips", required=True)
@@ -126,27 +153,9 @@ def main():
             text += "\n\nMusic: " + open(credit).read().strip()
     build(out, hook, f"Zwift · {nice(date)}", clips, music=track)
 
-    # orphan commit on zwift-media holding just this Short
-    br = os.path.join(work, "branch")
-    os.makedirs(os.path.join(br, ".github", "workflows"))
-    shutil.move(out, os.path.join(br, fname))
-    shutil.copy(os.path.join(HERE, "zwift-post.yml"), os.path.join(br, ".github", "workflows", "zwift-post.yml"))
-    json.dump({"title": yt_title, "text": text, "file_name": fname, "privacy": a.privacy},
-              open(os.path.join(br, "post.json"), "w"), indent=1)
-    url = git("remote", "get-url", "origin").strip()
-    git("init", "-q", "-b", "zwift-media", cwd=br)
-    git("add", "-A", cwd=br)
-    git(*BOT, "commit", "-qm", f"Zwift Short {date}", cwd=br)
-    git("push", "-f", url, "zwift-media", cwd=br)
-    print("Pushed to zwift-media; GitHub will send it to Make.")
+    publish(out, fname, yt_title, text, a.privacy, f"Zwift Short {date}")
 
-    # record it on main
-    git("pull", "-q", "--rebase", "origin", "main")
-    with open(POSTED, "a") as f:
-        f.write(date + "\n")
-    git("add", POSTED)
-    git(*BOT, "commit", "-qm", f"Zwift Short posted: {date}")
-    git("push", "-q", "origin", "HEAD:main")
+    record(POSTED, date, f"Zwift Short posted: {date}")
     print(f"Done: {date}")
 
 

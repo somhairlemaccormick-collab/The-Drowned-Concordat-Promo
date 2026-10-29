@@ -1,0 +1,38 @@
+[
+  {
+    "id": "etape-2016-morning",
+    "hook": "5am. Mont Blanc. *Let's ride.*",
+    "sub": "Étape du Tour · 2016",
+    "photos": ["IMG_0137.jpg", "IMG_0139.jpg", "IMG_0136.jpg", "sportograf-83744036.jpg", "sportograf-83817668.jpg"],
+    "description": "Race day at the Étape du Tour 2016: an early start under Mont Blanc and into the Alps.",
+    "credit": "Event photos: Sportograf",
+    "tags": ["#etapedutour", "#cycling", "#alps", "#roadcycling", "#cyclinglife", "#shorts"]
+  },
+  {
+    "id": "etape-2016-climbs",
+    "hook": "Alpine roads hit *different*",
+    "sub": "Étape du Tour · 2016",
+    "photos": ["sportograf-83785857.jpg", "sportograf-83880842.jpg", "sportograf-83920733.jpg", "sportograf-83744037.jpg", "sportograf-83730251.jpg"],
+    "description": "Climbs, hairpins and a lot of suffering at the Étape du Tour 2016.",
+    "credit": "Photos: Sportograf",
+    "tags": ["#etapedutour", "#cycling", "#climbing", "#alps", "#bikelife", "#shorts"]
+  },
+  {
+    "id": "etape-2017-lake",
+    "hook": "Lakeside in the Alps? *Yes please*",
+    "sub": "Étape du Tour · 2017",
+    "photos": ["sportograf-104092713.jpg", "sportograf-104218243.jpg", "sportograf-104269474.jpg", "sportograf-104390768.jpg"],
+    "description": "Rolling through the Alps with the bunch at the Étape du Tour 2017.",
+    "credit": "Photos: Sportograf",
+    "tags": ["#etapedutour", "#cycling", "#alps", "#roadcycling", "#groupride", "#shorts"]
+  },
+  {
+    "id": "etape-2017-izoard",
+    "hook": "Summit of the *Izoard* ✔",
+    "sub": "Étape du Tour · 2017",
+    "photos": ["sportograf-104410199.jpg", "6CB8A504-4213-4788-BAED-D5D02992AE94.jpg", "1DBB781B-6ADB-43E6-8F9B-9692DEAE1B86.jpg", "sportograf-104060684.jpg", "IMG_0623.JPG"],
+    "description": "The Col d'Izoard, the summit photo and the finish at the Étape du Tour 2017.",
+    "credit": "Event photos: Sportograf",
+    "tags": ["#etapedutour", "#izoard", "#cycling", "#alps", "#cyclinglife", "#shorts"]
+  }
+]
