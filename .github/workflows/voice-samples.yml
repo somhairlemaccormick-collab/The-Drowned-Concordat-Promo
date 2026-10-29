@@ -9,6 +9,9 @@ on:
       voices:
         description: 'Voices to render'
         default: 'en_GB/alan/medium en_GB/vctk/medium:p252'
+      length:
+        description: 'Speaking pace (1 = normal, higher = slower)'
+        default: '1.08'
 
 permissions:
   contents: write
@@ -43,7 +46,7 @@ jobs:
               [ -z "$id" ] && { echo "no speaker $spk in $file"; python3 -c "import json; print(list(json.load(open('$m.json'))['speaker_id_map'])[:40])"; continue; }
               arg="--speaker $id"; out=$name-$spk
             fi
-            echo "$LINE" | ./piper/piper --model $m $arg --length_scale 1.08 --output_file samples/$out.wav
+            echo "$LINE" | ./piper/piper --model $m $arg --length_scale ${{ inputs.length }} --sentence_silence 0.45 --output_file samples/$out.wav
           done
           cd samples && for f in *.wav; do ffmpeg -v error -y -i $f -b:a 128k ${f%.wav}.mp3 && rm $f; done && ls
           } 2>&1 | tee -a log.txt
