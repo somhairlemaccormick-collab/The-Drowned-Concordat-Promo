@@ -1,0 +1,74 @@
+[
+  {
+    "id": "01-welcome-to-the-delta",
+    "title": "Welcome to the Delta",
+    "portrait": "hamish-portrait.png",
+    "open": "The sea took the world we knew. What was left of Europe lives behind a wall the engineers call the Bulwark.",
+    "cutaway": "video-anim-bulwark-coast-1.mp4",
+    "voiceover": "On one side, the ocean. On the other, five hundred million people. Not one meal grown in soil.",
+    "close": "I'm Hamish Rannoch. The Drowned Concordat is the story of the people who keep that world fed. Book One is out now on Kindle."
+  },
+  {
+    "id": "02-food-from-a-vat",
+    "title": "Food from a vat",
+    "portrait": "hamish-study.jpg",
+    "open": "Imagine never tasting food that grew in the ground. Not once. Not in your whole life.",
+    "cutaway": "video-anim-vein-market.mp4",
+    "voiceover": "In the Delta, breakfast is gel. Lunch is gel. Dinner is gel. Foam or lump: that's the choice.",
+    "close": "The Drowned Concordat asks what you would believe in, if your next meal depended on it. Book One is out now."
+  },
+  {
+    "id": "03-elara",
+    "title": "Meet Elara",
+    "portrait": "hamish-edinburgh.jpg",
+    "open": "Doctor Elara Di Canti keeps a drowned hemisphere fed. She has never doubted that it's worth it.",
+    "cutaway": "video-anim-city-terraces.mp4",
+    "voiceover": "High above the flood line, the towers glow. Far below, the queues for gel never end.",
+    "close": "Elara believes in the system. The Drowned Concordat is about what that belief costs. Book One, out now on Kindle."
+  },
+  {
+    "id": "04-the-wall",
+    "title": "Why a wall?",
+    "portrait": "hamish-portrait.png",
+    "open": "People ask me, why a wall? Because when the water came, a wall was the only promise anyone could keep.",
+    "cutaway": "video-anim-bulwark-storm.mp4",
+    "voiceover": "Storm season on the Bulwark. Every wave is a test the engineers have to pass. And the ocean is patient.",
+    "close": "The Drowned Concordat. Climate fiction where the flood has already happened. Book One is out now."
+  },
+  {
+    "id": "05-counted",
+    "title": "Every calorie counted",
+    "portrait": "hamish-study.jpg",
+    "open": "In the Delta, every calorie is counted. Every gram is accounted for. And so is everyone who eats one.",
+    "cutaway": "video-anim-surveillance-street.mp4",
+    "voiceover": "The Council keeps the Delta fed. The Enforcers keep it quiet.",
+    "close": "If the oceans rose tomorrow, who would decide what you eat? The Drowned Concordat, Book One, out now."
+  },
+  {
+    "id": "06-two-sisters",
+    "title": "Two sisters, one drowned world",
+    "portrait": "hamish-edinburgh.jpg",
+    "open": "Two sisters. One drowned world. Two very different ideas of how to save it.",
+    "cutaway": "video-anim-bulwark-coast-2.mp4",
+    "voiceover": "Elara feeds the Delta from a vat. Her sister Becca still believes the future grows in soil.",
+    "close": "That argument sits at the heart of The Drowned Concordat. Book One is out now on Kindle."
+  },
+  {
+    "id": "07-faith",
+    "title": "When the food comes from a vat",
+    "portrait": "hamish-portrait.png",
+    "open": "Some people in the Delta have stopped trusting the numbers.",
+    "cutaway": "video-anim-city-terraces.mp4",
+    "voiceover": "A few have started to pray instead. When your food comes from a vat, faith has to come from somewhere else.",
+    "close": "The Drowned Concordat is about food, faith, and the people who keep a drowned world alive. Book One, out now."
+  },
+  {
+    "id": "08-for-readers",
+    "title": "If you loved Station Eleven",
+    "portrait": "hamish-study.jpg",
+    "open": "If you love Station Eleven, The Water Knife or The Wind-Up Girl, this one is for you.",
+    "cutaway": "video-anim-bulwark-coast-1.mp4",
+    "voiceover": "A hard science fiction dystopia, set behind the sea walls of a flooded Europe.",
+    "close": "The Drowned Concordat, Book One. Out now on Kindle. Come and see what's left."
+  }
+]

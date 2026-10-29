@@ -1137,6 +1137,8 @@ def post():
         payload = {"kind": kind, "text": data["text"]}
         if data.get("title"):
             payload["title"] = data["title"]
+        if data.get("synthetic"):
+            payload["synthetic"] = "true"  # AI-animated content: Make sets the YouTube AI-disclosure flag
         if image_url.endswith(".mp4"):
             payload["video_url"] = image_url
             payload["file_name"] = data["image_path"].rsplit("/", 1)[-1]

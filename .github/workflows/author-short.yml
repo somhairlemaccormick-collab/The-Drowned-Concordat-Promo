@@ -1,0 +1,95 @@
+# "Hamish talks about the book" Shorts: Hamish on camera -> a Delta clip under his voice -> Hamish closes.
+# Three a week (Tue, Thu, Sat). Each run renders the next episode in author/episodes.json (~30-60 min on
+# GitHub's CPU machines), commits it to generated/ and sends it to Make like the daily Reel:
+# Instagram Reel + YouTube Short (Hamish channel) + Drive copy for TikTok.
+name: Author Shorts
+
+on:
+  # schedule switched on once the first episode is approved:
+  # schedule:
+  #   - cron: '37 16 * * 2,4,6'   # Tue/Thu/Sat 16:37 UTC; posts roughly an hour later
+  workflow_dispatch:
+    inputs:
+      id:
+        description: 'Episode id (blank = next unposted)'
+        default: ''
+      dry_run:
+        description: 'Build and publish the file but do NOT send to Make'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: author-shorts
+  cancel-in-progress: false
+
+jobs:
+  episode:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: Tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libsndfile1 > /dev/null
+          pip install -q pillow requests
+          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
+          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium
+          curl -sSfL -o vctk.onnx $H/en_GB-vctk-medium.onnx
+          curl -sSfL -o vctk.onnx.json $H/en_GB-vctk-medium.onnx.json
+
+      - name: Voice
+        id: voice
+        run: |
+          if python author/make_episode.py voice --id "${{ inputs.id }}" > voice.log 2>&1; then cat voice.log
+          elif grep -q NO_EPISODES_LEFT voice.log; then echo "All episodes posted."; echo "done=1" >> $GITHUB_OUTPUT
+          else cat voice.log; exit 1; fi
+
+      - name: Animate Hamish (SadTalker)
+        if: steps.voice.outputs.done != '1'
+        run: |
+          git clone -q --depth 1 https://github.com/OpenTalker/SadTalker.git
+          cd SadTalker
+          pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -q -r requirements.txt
+          bash scripts/download_models.sh > /dev/null 2>&1
+          for part in open close; do
+            python inference.py --driven_audio ../work/$part-16k.wav --source_image ../work/portrait.jpg \
+              --result_dir ../work/st-$part --still --preprocess full --enhancer gfpgan --cpu --size 256
+            cp "$(find ../work/st-$part -name '*.mp4' | head -1)" ../work/$part.mp4
+          done
+
+      - name: Compose
+        if: steps.voice.outputs.done != '1'
+        run: python author/make_episode.py compose
+
+      - name: Publish the video to the repo
+        if: steps.voice.outputs.done != '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add generated author/posted.txt
+          git commit -m "Author Short: ${{ steps.voice.outputs.episode }} (run ${{ github.run_number }})"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "PUBLISHED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        if: steps.voice.outputs.done != '1'
+        with:
+          python-version: '3.12'
+
+      - name: Send to Make (Instagram Reel, YouTube, Drive for TikTok)
+        if: steps.voice.outputs.done != '1'
+        env:
+          SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: |
+          pip install -q requests pillow imageio-ffmpeg
+          python auto_poster.py post
