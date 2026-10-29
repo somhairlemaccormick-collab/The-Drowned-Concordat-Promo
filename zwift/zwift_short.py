@@ -42,7 +42,7 @@ def overlay_png(path, title, sub):
     img.save(path)
 
 
-def build(out, title, sub, clips):
+def build(out, title, sub, clips, music=None):
     tmp = tempfile.mkdtemp()
     png = os.path.join(tmp, "ov.png")
     overlay_png(png, title, sub)
@@ -62,8 +62,17 @@ def build(out, title, sub, clips):
     n = len(clips)
     concat = "".join(f"[v{i}][a{i}]" for i in range(n)) + f"concat=n={n}:v=1:a=1[vc][ac];"
     fc = "".join(parts) + concat + f"[vc][{n}:v]overlay=0:0[vo]"
-    cmd = ["ffmpeg", "-v", "error", "-y", *inputs, "-i", png,
-           "-filter_complex", fc, "-map", "[vo]", "-map", "[ac]",
+    extra, amap = [], "[ac]"
+    if music:
+        # music on top, the game sound kept quietly underneath; fade in/out
+        dur = 15 * n
+        extra = ["-stream_loop", "-1", "-i", music]
+        fc += (f";[{n + 1}:a]aresample=48000,aformat=channel_layouts=stereo,atrim=0:{dur},"
+               f"afade=t=in:d=1,afade=t=out:st={dur - 2.5}:d=2.5,volume=0.85[mu];"
+               f"[ac]volume=0.25[gs];[mu][gs]amix=inputs=2:duration=first:normalize=0[am]")
+        amap = "[am]"
+    cmd = ["ffmpeg", "-v", "error", "-y", *inputs, "-i", png, *extra,
+           "-filter_complex", fc, "-map", "[vo]", "-map", amap, "-shortest",
            "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p",
            "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out]
     subprocess.run(cmd, check=True)

@@ -12,6 +12,7 @@ Posted days are listed in zwift/posted.txt on main.
 """
 import argparse, glob, json, os, re, shutil, subprocess, sys, tempfile, time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -37,8 +38,25 @@ def clips_by_day(d):
     return days
 
 
+def last_clip_time(paths):
+    m = PAT.search(os.path.basename(sorted(paths)[-1]))
+    return datetime.strptime(f"{m.group(1)} {m.group(2)}:{m.group(3)}:{m.group(4)}", "%Y-%m-%d %H:%M:%S")
+
+
 def posted():
     return set(open(POSTED).read().split()) if os.path.exists(POSTED) else set()
+
+
+def pick_track(folder, date):
+    """Rotate through the tracks, a different one each day."""
+    if not folder or not os.path.isdir(folder):
+        return None
+    tracks = sorted(p for p in glob.glob(os.path.join(folder, "*"))
+                    if p.lower().endswith((".mp3", ".m4a", ".wav", ".aac", ".ogg")))
+    if not tracks:
+        return None
+    day = datetime.strptime(date, "%Y-%m-%d").toordinal()
+    return tracks[day % len(tracks)]
 
 
 def nice(date):
@@ -51,6 +69,7 @@ def main():
     ap.add_argument("--date")
     ap.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--music", help="folder of free-to-use tracks (mp3/m4a/wav); one is picked per Short")
     a = ap.parse_args()
 
     days, done = clips_by_day(a.clips), posted()
@@ -63,7 +82,9 @@ def main():
         date = a.date
     else:
         # skip a day whose newest clip is under an hour old: the ride may still be going
-        waiting = [d for d in waiting if time.time() - max(os.path.getmtime(p) for p in days[d]) > 3600]
+        # (uses the time in Zwift's file names, Amsterdam time, since copied files get new dates)
+        now = datetime.now(ZoneInfo("Europe/Amsterdam")).replace(tzinfo=None)
+        waiting = [d for d in waiting if (now - last_clip_time(days[d])).total_seconds() > 3600]
         if not waiting:
             print("Nothing new to post.")
             return
@@ -83,7 +104,13 @@ def main():
     work = tempfile.mkdtemp()
     out = os.path.join(work, fname)
     print(f"Building {fname} from {len(clips)} clips (~{secs}s)")
-    build(out, "Zwift ride", nice(date), clips)
+    track = pick_track(a.music, date)
+    if track:
+        print("Music:", os.path.basename(track))
+        credit = os.path.splitext(track)[0] + ".txt"  # optional attribution text next to the track
+        if os.path.exists(credit):
+            text += "\n\nMusic: " + open(credit).read().strip()
+    build(out, "Zwift ride", nice(date), clips, music=track)
 
     # orphan commit on zwift-media holding just this Short
     br = os.path.join(work, "branch")
