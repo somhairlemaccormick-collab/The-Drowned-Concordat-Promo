@@ -1,0 +1,54 @@
+# Posts the next ready "Hamish talks about the book" episode from the queue (author/rendered/).
+# Quick: no rendering here. Goes out like the daily Reel: Instagram Reel + YouTube Short + Drive copy for TikTok.
+name: Author Shorts - post
+
+on:
+  # schedule switched on once the first episode is approved:
+  # schedule:
+  #   - cron: '37 16 * * 2,4,6'   # Tue/Thu/Sat 16:37 UTC
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Publish the file but do NOT send to Make (and do not mark it posted)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: promo
+  cancel-in-progress: false
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -q requests pillow imageio-ffmpeg
+
+      - name: Take the next episode from the queue
+        id: next
+        run: python author/make_episode.py post
+
+      - name: Publish the video to the repo
+        if: steps.next.outputs.empty != '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ "${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}" = "true" ]; then git checkout author/posted.txt; fi
+          git add generated author/posted.txt
+          git commit -m "Author Short posted: ${{ steps.next.outputs.episode }} (run ${{ github.run_number }})"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          echo "PUBLISHED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Send to Make (Instagram Reel, YouTube, Drive for TikTok)
+        if: steps.next.outputs.empty != '1'
+        env:
+          SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: python auto_poster.py post

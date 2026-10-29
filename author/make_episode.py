@@ -53,6 +53,7 @@ def voice(args):
     episodes = json.loads((AUTHOR / "episodes.json").read_text(encoding="utf-8"))
     posted_file = AUTHOR / "posted.txt"
     done = set(posted_file.read_text().split()) if posted_file.exists() else set()
+    done |= {p.stem for p in (AUTHOR / "rendered").glob("*.mp4")}  # already in the queue
     if args.id:
         ep = next(e for e in episodes if e["id"] == args.id)
     else:
@@ -169,13 +170,31 @@ def compose(args):
             a, b = t0 + c["start"], t0 + c["end"] + 0.25
             chain += f";[c{k - 1}][{k + 1}:v]overlay=0:1380:enable='between(t,{a:.2f},{b:.2f})'[c{k}]"
         t0 += dur
-    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    out = ROOT / "generated" / f"{stamp}-author-{ep['id']}.mp4"
+    out = AUTHOR / "rendered" / f"{ep['id']}.mp4"
     out.parent.mkdir(exist_ok=True)
     run("ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", chain, "-map", f"[c{k}]", "-map", "0:a",
         "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-c:a", "copy",
         "-movflags", "+faststart", str(out))
+    print("Rendered into the queue:", out, f"{sum(d for _, d in segs):.1f}s")
 
+
+def post_next(args):
+    """Take the next rendered episode from the queue (in episodes.json order) and stage it for posting."""
+    import shutil
+    episodes = json.loads((AUTHOR / "episodes.json").read_text(encoding="utf-8"))
+    posted_file = AUTHOR / "posted.txt"
+    done = set(posted_file.read_text().split()) if posted_file.exists() else set()
+    ready = [e for e in episodes if e["id"] not in done and (AUTHOR / "rendered" / f"{e['id']}.mp4").exists()]
+    if not ready:
+        print("QUEUE_EMPTY: no rendered episodes waiting.")
+        if os.environ.get("GITHUB_OUTPUT"):
+            open(os.environ["GITHUB_OUTPUT"], "a").write("empty=1\n")
+        return
+    ep = ready[0]
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    out = ROOT / "generated" / f"{stamp}-author-{ep['id']}.mp4"
+    out.parent.mkdir(exist_ok=True)
+    shutil.copy(AUTHOR / "rendered" / f"{ep['id']}.mp4", out)
     caption = (f"{ep['title']}. {ep['open']}\n\n"
                "The Drowned Concordat, Book One, is out now on Kindle (link in bio).\n\n"
                "Hamish is an AI-animated narrator voicing the author's words.\n\n"
@@ -183,18 +202,19 @@ def compose(args):
     post = {"kind": "reel", "text": caption, "title": f"{ep['title']} | The Drowned Concordat",
             "image_path": out.relative_to(ROOT).as_posix(), "background": ep["cutaway"], "synthetic": True}
     (ROOT / "post.json").write_text(json.dumps(post, ensure_ascii=False, indent=2), encoding="utf-8")
-    with open(AUTHOR / "posted.txt", "a") as f:
+    with open(posted_file, "a") as f:
         f.write(ep["id"] + "\n")
-    print("Built", out, f"{sum(d for _, d in segs):.1f}s")
-
+    print("Posting", ep["id"], f"({len(ready) - 1} more in the queue)")
+    if os.environ.get("GITHUB_OUTPUT"):
+        open(os.environ["GITHUB_OUTPUT"], "a").write(f"episode={ep['id']}\n")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("step", choices=["voice", "compose"])
+    ap.add_argument("step", choices=["voice", "compose", "post"])
     ap.add_argument("--id")
     ap.add_argument("--piper", default="piper/piper")
     ap.add_argument("--model", default="vctk.onnx")
     ap.add_argument("--speaker", default="p281")
     ap.add_argument("--pace", type=float, default=1.25)
     a = ap.parse_args()
-    voice(a) if a.step == "voice" else compose(a)
+    {"voice": voice, "compose": compose, "post": post_next}[a.step](a)
