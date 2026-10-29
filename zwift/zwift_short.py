@@ -14,31 +14,56 @@ from PIL import Image, ImageDraw, ImageFont
 
 W, H = 1080, 1920
 FONT_B = "/usr/share/fonts/opentype/inter/Inter-Bold.otf"
+FONT_X = "/usr/share/fonts/opentype/inter/Inter-Black.otf"
 FONT_M = "/usr/share/fonts/opentype/inter/Inter-Medium.otf"
 ORANGE = (252, 102, 0)
+
+
+def _words(title):
+    """Split a hook into (word, is_accent) pairs; *asterisks* mark the accent words."""
+    out, accent = [], False
+    for w in title.split():
+        start, end = w.startswith("*"), w.rstrip(".,!?").endswith("*")
+        accent = accent or start
+        out.append((w.replace("*", "").upper(), accent))
+        if end:
+            accent = False
+    return out
 
 
 def overlay_png(path, title, sub):
     img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
-    fb = ImageFont.truetype(FONT_B, 92)
-    fm = ImageFont.truetype(FONT_M, 50)
-    # wrap title to 2 lines max
-    words, lines, cur = title.split(), [], ""
-    for w in words:
-        t = (cur + " " + w).strip()
-        if d.textlength(t, font=fb) > W - 120 and cur:
-            lines.append(cur); cur = w
-        else:
-            cur = t
-    lines.append(cur)
-    y = 150 if len(lines) == 1 else 90
-    for ln in lines[:2]:
-        d.text((W / 2, y), ln, font=fb, fill="white", anchor="ma",
-               stroke_width=4, stroke_fill=(0, 0, 0, 160))
-        y += 110
-    d.rectangle([W / 2 - 70, y + 20, W / 2 + 70, y + 30], fill=ORANGE)
-    d.text((W / 2, y + 60), sub, font=fm, fill=(235, 235, 235), anchor="ma")
+    # dark fade behind the headline so it reads over any scenery
+    for y in range(520):
+        d.line([(0, y), (W, y)], fill=(0, 0, 0, int(150 * (1 - y / 520))))
+    words = _words(title)
+    # biggest size that fits in 3 lines
+    for size in range(124, 60, -4):
+        fb = ImageFont.truetype(FONT_X, size)
+        lines, cur = [], []
+        for w in words:
+            t = " ".join(x for x, _ in cur + [w])
+            if cur and d.textlength(t, font=fb) > W - 110:
+                lines.append(cur); cur = [w]
+            else:
+                cur.append(w)
+        lines.append(cur)
+        if len(lines) <= 3:
+            break
+    lh = int(size * 1.08)
+    y = max(40, (430 - lh * len(lines)) // 2 + 20)
+    sp = d.textlength(" ", font=fb)
+    for ln in lines:
+        x = (W - d.textlength(" ".join(w for w, _ in ln), font=fb)) / 2
+        for w, acc in ln:
+            d.text((x, y), w, font=fb, fill=ORANGE if acc else "white",
+                   stroke_width=6, stroke_fill=(0, 0, 0, 230))
+            x += d.textlength(w, font=fb) + sp
+        y += lh
+    fm = ImageFont.truetype(FONT_M, 40)
+    d.text((W / 2, y + 22), sub.upper(), font=fm, fill=(230, 230, 230), anchor="ma",
+           stroke_width=3, stroke_fill=(0, 0, 0, 200))
     img.save(path)
 
 
@@ -54,9 +79,9 @@ def build(out, title, sub, clips, music=None):
             f"[{i}:v]scale=1280:720,setsar=1,fps=30,split=3[s{i}a][s{i}b][s{i}c];"
             f"[s{i}a]scale=-2:{H},crop={W}:{H},gblur=sigma=28,eq=brightness=-0.18[bg{i}];"
             f"[s{i}b]crop=720:720:280:0,scale=1080:1080[sq{i}];"
-            f"[s{i}c]crop=230:200:0:0,scale=440:-2[pp{i}];"
+            f"[s{i}c]crop=230:200:0:0,scale=380:-2[pp{i}];"
             f"[bg{i}][sq{i}]overlay=0:500[t{i}];"
-            f"[t{i}][pp{i}]overlay=(W-w)/2:1600[v{i}];"
+            f"[t{i}][pp{i}]overlay=(W-w)/2:1590[v{i}];"
             f"[{i}:a]aresample=48000,aformat=channel_layouts=stereo[a{i}];"
         )
     n = len(clips)

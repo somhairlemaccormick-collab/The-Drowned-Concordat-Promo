@@ -47,6 +47,17 @@ def posted():
     return set(open(POSTED).read().split()) if os.path.exists(POSTED) else set()
 
 
+EXTRA_TAGS = ["#indoorcycling", "#cycling", "#zwiftpower", "#cyclinglife", "#smarttrainer",
+              "#bikelife", "#cyclingtraining", "#virtualcycling", "#paincave", "#watts",
+              "#roadcycling", "#fitness"]
+
+
+def pick_hook(n):
+    lines = [l.strip() for l in open(os.path.join(HERE, "hooks.txt"), encoding="utf-8")
+             if l.strip() and not l.startswith("#")]
+    return lines[n % len(lines)]
+
+
 def pick_track(folder, date):
     """Rotate through the tracks, a different one each day."""
     if not folder or not os.path.isdir(folder):
@@ -95,10 +106,13 @@ def main():
     clips = clips[:8]  # 8 x 15 s = 2 min, well inside the 3-minute Short limit
 
     secs = 15 * len(clips)
-    title = f"Zwift ride · {nice(date)}"
-    yt_title = f"{title} #shorts"
-    text = (f"{len(clips)} moment{'s' if len(clips) > 1 else ''} from a ride on Zwift, {nice(date)}.\n\n"
-            "#zwift #indoorcycling #cycling #shorts")
+    n = len(done)  # rotate hooks and hashtags one step per Short posted
+    hook = pick_hook(n)
+    plain = hook.replace("*", "")
+    tags = ["#zwift", "#shorts"] + [EXTRA_TAGS[(n * 3 + k) % len(EXTRA_TAGS)] for k in range(3)]
+    yt_title = f"{plain} 🚴 #zwift #shorts"
+    text = (f"{plain}\n\nRide of {nice(date)} on Zwift. Follow for more indoor cycling.\n\n"
+            + " ".join(tags))
     fname = f"zwift-{date}.mp4"
 
     work = tempfile.mkdtemp()
@@ -110,7 +124,7 @@ def main():
         credit = os.path.splitext(track)[0] + ".txt"  # optional attribution text next to the track
         if os.path.exists(credit):
             text += "\n\nMusic: " + open(credit).read().strip()
-    build(out, "Zwift ride", nice(date), clips, music=track)
+    build(out, hook, f"Zwift · {nice(date)}", clips, music=track)
 
     # orphan commit on zwift-media holding just this Short
     br = os.path.join(work, "branch")
