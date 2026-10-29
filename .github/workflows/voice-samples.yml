@@ -1,0 +1,41 @@
+# Quick voice audition for the talking-author videos: renders the same line in several
+# Scottish voices (Piper's "alan" and the Edinburgh/Scottish male speakers in VCTK).
+name: Voice samples
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  samples:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Render samples
+        run: |
+          sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q piper-tts==1.2.0
+          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB
+          curl -sSL -o alan.onnx $H/alan/medium/en_GB-alan-medium.onnx
+          curl -sSL -o alan.onnx.json $H/alan/medium/en_GB-alan-medium.onnx.json
+          curl -sSL -o vctk.onnx $H/vctk/medium/en_GB-vctk-medium.onnx
+          curl -sSL -o vctk.onnx.json $H/vctk/medium/en_GB-vctk-medium.onnx.json
+          mkdir samples
+          LINE="The sea took the world we knew. What was left of Europe now lives behind the Bulwark, in a place called the Delta. I'm Hamish Rannoch."
+          echo "$LINE" | piper --model alan.onnx --length_scale 1.08 --output_file samples/alan.wav
+          # VCTK male speakers recorded as Scottish (Edinburgh first)
+          for spk in p252 p263 p272 p281 p284 p285 p237 p241 p246 p247 p271; do
+            id=$(python -c "import json,sys; m=json.load(open('vctk.onnx.json'))['speaker_id_map']; print(m.get('$spk',''))")
+            [ -z "$id" ] && { echo "no $spk"; continue; }
+            echo "$LINE" | piper --model vctk.onnx --speaker $id --length_scale 1.1 --output_file samples/vctk-$spk.wav
+          done
+          cd samples && for f in *.wav; do ffmpeg -v error -y -i $f -b:a 128k ${f%.wav}.mp3 && rm $f; done && ls
+      - uses: actions/upload-artifact@v4
+        with:
+          name: voice-samples
+          path: samples/
