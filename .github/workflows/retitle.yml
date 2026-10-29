@@ -16,6 +16,6 @@ jobs:
           for post in json.load(open("posts.json", encoding="utf-8")):
               req = urllib.request.Request(os.environ["SOCIAL_WEBHOOK_URL"], data=json.dumps(post).encode(),
                                            headers={"Content-Type": "application/json"})
-              print(post["video_id"], post["title"], "->", urllib.request.urlopen(req, timeout=60).read().decode())
+              print(post.get("video_id"), post.get("title"), "->", urllib.request.urlopen(req, timeout=60).read().decode())
               time.sleep(8)
           PY
