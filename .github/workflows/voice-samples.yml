@@ -1,10 +1,14 @@
-# Quick voice audition for the talking-author videos: the same line in several Scottish voices
-# (Piper's "alan" and the Scottish male speakers in the VCTK set, Edinburgh first).
+# Quick voice audition for the talking-author videos: the same line in several voices.
+# Input: space-separated list of lang/voice/quality[:speaker], e.g. en_GB/vctk/medium:p245
 # Results are pushed to the author-media-samples branch.
 name: Voice samples
 
 on:
   workflow_dispatch:
+    inputs:
+      voices:
+        description: 'Voices to render'
+        default: 'en_GB/alan/medium en_GB/vctk/medium:p252'
 
 permissions:
   contents: write
@@ -17,27 +21,29 @@ jobs:
       BRANCH: samples
     steps:
       - uses: actions/checkout@v4
-      - name: Piper (text-to-speech)
-        run: |
-          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
-          echo "$PWD/piper" >> $GITHUB_PATH
-          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB
-          curl -sSL -o alan.onnx $H/alan/medium/en_GB-alan-medium.onnx
-          curl -sSL -o alan.onnx.json $H/alan/medium/en_GB-alan-medium.onnx.json
-          curl -sSL -o vctk.onnx $H/vctk/medium/en_GB-vctk-medium.onnx
-          curl -sSL -o vctk.onnx.json $H/vctk/medium/en_GB-vctk-medium.onnx.json
       - name: Render samples
         run: |
           set -o pipefail
           {
           sudo apt-get install -y -qq ffmpeg > /dev/null
-          mkdir -p samples
+          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
+          mkdir -p samples models
           LINE="The sea took the world we knew. What was left of Europe now lives behind the Bulwark, in a place called the Delta. I'm Hamish Rannoch."
-          echo "$LINE" | piper --model alan.onnx --length_scale 1.08 --output_file samples/alan.wav
-          for spk in p252 p263 p272 p281 p284 p285 p237 p241 p246 p247 p271; do
-            id=$(python3 -c "import json; m=json.load(open('vctk.onnx.json'))['speaker_id_map']; print(m.get('$spk',''))")
-            [ -z "$id" ] && { echo "no $spk"; continue; }
-            echo "$LINE" | piper --model vctk.onnx --speaker $id --length_scale 1.1 --output_file samples/vctk-$spk.wav
+          for v in ${{ inputs.voices }}; do
+            path=${v%%:*}; spk=""; [ "$v" != "$path" ] && spk=${v#*:}
+            lang=${path%%/*}; rest=${path#*/}; name=${rest%%/*}; q=${rest#*/}
+            file=$lang-$name-$q; m=models/$file.onnx
+            if [ ! -f $m ]; then
+              B=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/${lang%%_*}/$lang/$name/$q
+              curl -sSfL -o $m $B/$file.onnx && curl -sSfL -o $m.json $B/$file.onnx.json || { echo "missing $file"; continue; }
+            fi
+            arg=""; out=$name
+            if [ -n "$spk" ]; then
+              id=$(python3 -c "import json; print(json.load(open('$m.json'))['speaker_id_map'].get('$spk',''))")
+              [ -z "$id" ] && { echo "no speaker $spk in $file"; python3 -c "import json; print(list(json.load(open('$m.json'))['speaker_id_map'])[:40])"; continue; }
+              arg="--speaker $id"; out=$name-$spk
+            fi
+            echo "$LINE" | ./piper/piper --model $m $arg --length_scale 1.08 --output_file samples/$out.wav
           done
           cd samples && for f in *.wav; do ffmpeg -v error -y -i $f -b:a 128k ${f%.wav}.mp3 && rm $f; done && ls
           } 2>&1 | tee -a log.txt
