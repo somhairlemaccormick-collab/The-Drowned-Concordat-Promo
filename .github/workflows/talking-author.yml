@@ -1,0 +1,71 @@
+# Makes a talking-head video of Hamish from author/hamish-portrait.png and a script in author/scripts/.
+# Voice: Piper (open-source text-to-speech). Face: SadTalker (open-source, runs on the CPU, so it is slow).
+# Run it from the Actions tab; the finished video is attached to the run as an artifact.
+name: Talking author video
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'Script file in author/scripts/'
+        default: '01-the-delta.txt'
+      voice:
+        description: 'Piper voice'
+        default: 'en_GB-alan-medium'
+
+permissions:
+  contents: read
+
+jobs:
+  make:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.8'
+
+      - name: System packages
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libsndfile1 > /dev/null
+
+      - name: Voice (Piper)
+        run: |
+          pip install -q piper-tts==1.2.0
+          V=${{ inputs.voice }}
+          L=$(echo $V | cut -d- -f1); LANG=$(echo $L | cut -d_ -f1); NAME=$(echo $V | cut -d- -f2); Q=$(echo $V | cut -d- -f3)
+          BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/$LANG/$L/$NAME/$Q
+          curl -sSL -o voice.onnx $BASE/$V.onnx
+          curl -sSL -o voice.onnx.json $BASE/$V.onnx.json
+          tr '\n' ' ' < "author/scripts/${{ inputs.script }}" | piper --model voice.onnx --length_scale 1.08 --sentence_silence 0.35 --output_file speech.wav
+          ffprobe -v error -show_entries format=duration -of csv=p=0 speech.wav
+
+      - name: Face (SadTalker)
+        run: |
+          git clone -q --depth 1 https://github.com/OpenTalker/SadTalker.git
+          cd SadTalker
+          pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -q -r requirements.txt
+          bash scripts/download_models.sh > /dev/null
+          python -c "from PIL import Image; Image.open('../author/hamish-portrait.png').convert('RGB').save('../portrait.jpg', quality=95)"
+          python inference.py --driven_audio ../speech.wav --source_image ../portrait.jpg \
+            --result_dir ../out --still --preprocess full --enhancer gfpgan --cpu --size 256
+          ls -R ../out
+
+      - name: Finish (subtitles-free, Shorts-friendly 9:16 version too)
+        run: |
+          F=$(find out -name '*.mp4' | head -1)
+          cp "$F" talking-author.mp4
+          # 1080x1920 version: portrait centred on a blurred copy of itself
+          ffmpeg -v error -y -i talking-author.mp4 -filter_complex \
+            "[0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=30,eq=brightness=-0.15[bg];[0:v]scale=1080:-2[fg];[bg][fg]overlay=0:(H-h)/2" \
+            -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -c:a aac -b:a 160k talking-author-vertical.mp4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: talking-author
+          path: |
+            talking-author.mp4
+            talking-author-vertical.mp4
+            speech.wav
