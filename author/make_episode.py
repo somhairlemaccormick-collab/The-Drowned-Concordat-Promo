@@ -38,6 +38,26 @@ def sentences(text):
     return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
+def caption_chunks(sentence, start, dur, max_chars=58):
+    if len(sentence) <= max_chars:
+        return [{"text": sentence, "start": round(start, 3), "end": round(start + dur, 3)}]
+    parts = [x.strip() for x in re.split(r"(?<=[:;,])\s+", sentence) if x.strip()]
+    chunks, cur = [], ""
+    for x in parts:
+        if cur and len(cur) + 1 + len(x) > max_chars:
+            chunks.append(cur); cur = x
+        else:
+            cur = (cur + " " + x).strip()
+    chunks.append(cur)
+    total = sum(len(c) for c in chunks)
+    out, t = [], start
+    for c in chunks:
+        d = dur * len(c) / total
+        out.append({"text": c, "start": round(t, 3), "end": round(t + d - 0.05, 3)})
+        t += d
+    return out
+
+
 def wav_len(p):
     with wave.open(str(p)) as w:
         return w.getnframes() / w.getframerate()
@@ -89,7 +109,9 @@ def voice(args):
             fx = WORK / f"{part}-{i}.wav"
             run("ffmpeg", "-v", "error", "-y", "-i", str(raw), "-af", VOICE_FX, "-ac", "1", "-ar", "44100", str(fx))
             d = wav_len(fx)
-            timings.append({"text": s, "start": round(t, 3), "end": round(t + d, 3)})
+            # long sentences are captioned in shorter chunks (split at : ; , ), timed by length
+            for c in caption_chunks(s, t, d):
+                timings.append(c)
             pieces.append(fx)
             t += d + GAP
         # join sentences with short silences
