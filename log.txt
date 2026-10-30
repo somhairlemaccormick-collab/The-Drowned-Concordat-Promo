@@ -1,0 +1,58 @@
++ sudo apt-get update -qq
++ sudo apt-get install -y -qq ffmpeg espeak-ng
++ mkdir -p out
++ LINE='Hi, I'\''m Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.'
++ tar xz
++ curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz
++ H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium
++ curl -sSfL -o vctk.onnx https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx
++ curl -sSfL -o vctk.onnx.json https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium/en_GB-vctk-medium.onnx.json
+++ python -c 'import json; print(json.load(open('\''vctk.onnx.json'\''))['\''speaker_id_map'\'']['\''p281'\''])'
++ id=13
++ echo 'Hi, I'\''m Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.'
++ ./piper/piper --model vctk.onnx --speaker 13 --length_scale 1.25 --output_file out/01-p281-as-before.wav
+[2026-10-30 05:32:59.834] [piper] [info] Loaded voice in 0.290701913 second(s)
+[2026-10-30 05:32:59.834] [piper] [info] Initialized piper
+out/01-p281-as-before.wav
+[2026-10-30 05:33:00.420] [piper] [info] Real-time factor: 0.0711173203832166 (infer=0.574666652 sec, audio=8.080544217687075 sec)
+[2026-10-30 05:33:00.420] [piper] [info] Terminated piper
++ echo 'Hi, I'\''m Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.'
++ ./piper/piper --model vctk.onnx --speaker 13 --length_scale 1.1 --noise_scale 0.9 --noise_w 1.1 --output_file out/02-p281-livelier.wav
+[2026-10-30 05:33:00.754] [piper] [info] Loaded voice in 0.28905366 second(s)
+[2026-10-30 05:33:00.754] [piper] [info] Initialized piper
+out/02-p281-livelier.wav
+[2026-10-30 05:33:01.526] [piper] [info] Real-time factor: 0.0734087132845344 (infer=0.760227959 sec, audio=10.356099773242631 sec)
+[2026-10-30 05:33:01.526] [piper] [info] Terminated piper
++ echo 'Hi, I'\''m Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.'
++ ./piper/piper --model vctk.onnx --speaker 13 --length_scale 1.05 --noise_scale 1.0 --noise_w 1.3 --output_file out/03-p281-most-lively.wav
+[2026-10-30 05:33:01.867] [piper] [info] Loaded voice in 0.293147999 second(s)
+[2026-10-30 05:33:01.868] [piper] [info] Initialized piper
+out/03-p281-most-lively.wav
+[2026-10-30 05:33:02.625] [piper] [info] Real-time factor: 0.07291762675648084 (infer=0.744983354 sec, audio=10.216780045351474 sec)
+[2026-10-30 05:33:02.625] [piper] [info] Terminated piper
++ pip install -q 'kokoro>=0.9.4' soundfile
++ LINE='Hi, I'\''m Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.'
++ python -
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/torch/nn/modules/rnn.py:1012: UserWarning: dropout option adds dropout after all but last recurrent layer, so non-zero dropout expects num_layers greater than 1, but got dropout=0.2 and num_layers=1
+  super().__init__("LSTM", *args, **kwargs)
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/torch/nn/utils/weight_norm.py:145: FutureWarning: `torch.nn.utils.weight_norm` is deprecated in favor of `torch.nn.utils.parametrizations.weight_norm`.
+  WeightNorm.apply(module, name, dim)
+Collecting en-core-web-sm==3.8.0
+  Downloading en_core_web_sm-3.8.0-py3-none-any.whl (12.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 12.8/12.8 MB 159.8 MB/s  0:00:00
+Installing collected packages: en-core-web-sm
+Successfully installed en-core-web-sm-3.8.0
+/opt/hostedtoolcache/Python/3.11.17/x64/lib/python3.11/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+WARNING: Defaulting repo_id to hexgrad/Kokoro-82M. Pass repo_id='hexgrad/Kokoro-82M' to suppress this warning.
+[38;5;2m✔ Download and installation successful[0m
+You can now load the package via spacy.load('en_core_web_sm')
++ ls out
+01-p281-as-before.wav
+02-p281-livelier.wav
+03-p281-most-lively.wav
+04-kokoro-bm_george.wav
+05-kokoro-bm_lewis.wav
+06-kokoro-bm_daniel.wav
+07-kokoro-bm_fable.wav
