@@ -4,16 +4,16 @@
     "title": "Welcome to the Delta",
     "portrait": "hamish-portrait.png",
     "cutaway": "video-anim-bulwark-coast-1.mp4",
-    "voiceover": "The sea took the world we knew. What was left of Europe lives behind a wall the engineers call the Bulwark. On one side, the ocean. On the other, five hundred million people. Not one meal grown in soil.",
-    "close": "The Drowned Concordat is the story of the people who keep that world fed. Book One is out now on Kindle.",
-    "teaser": "The sea took the world we knew."
+    "voiceover": "The sea took the world we knew. The crops failed, and what's left of humanity now survives on a synthetic food gel. On one side of the Bulwark, the ocean; on the other, five hundred million people, and not one meal grown in soil.",
+    "close": "The Drowned Concordat is about what happens when the people running the system don't understand the people they govern. Book One is out now on Kindle.",
+    "teaser": "The crops failed, and what's left of humanity survives on a synthetic food gel."
   },
   {
     "id": "02-food-from-a-vat",
     "title": "Food from a vat",
     "portrait": "hamish-study.jpg",
     "cutaway": "video-anim-vein-market.mp4",
-    "voiceover": "Imagine never tasting food that grew in the ground. Not once. Not in your whole life. In the Delta, breakfast is gel. Lunch is gel. Dinner is gel. Foam or lump: that's the choice.",
+    "voiceover": "Imagine never tasting food that grew in the ground. Not once, in your whole life. In the Delta, breakfast is gel, lunch is gel, dinner is gel. Foam or lump: that's the choice.",
     "close": "The Drowned Concordat asks what you would believe in, if your next meal depended on it. Book One is out now.",
     "teaser": "Imagine never tasting food that grew in the ground."
   },
@@ -49,9 +49,9 @@
     "title": "Two sisters, one drowned world",
     "portrait": "hamish-edinburgh.jpg",
     "cutaway": "video-anim-bulwark-coast-2.mp4",
-    "voiceover": "Two sisters. One drowned world. Two very different ideas of how to save it. Elara feeds the Delta from a vat. Her sister Becca still believes the future grows in soil.",
+    "voiceover": "Two sisters, one drowned world, and two very different ideas of how to save it. Elara feeds the Delta from a vat. Her sister Becca still believes the future grows in soil.",
     "close": "That argument sits at the heart of The Drowned Concordat. Book One is out now on Kindle.",
-    "teaser": "Two sisters."
+    "teaser": "Two sisters, one drowned world, and two very different ideas of how to save it."
   },
   {
     "id": "07-faith",

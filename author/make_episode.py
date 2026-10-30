@@ -25,7 +25,7 @@ VOICE_FX = ("aresample=44100,rubberband=pitch=0.93:formant=preserved,bass=g=5:f=
             "equalizer=f=320:t=q:w=1.2:g=1.5,equalizer=f=3500:t=q:w=1.5:g=-1.5,"
             "asoftclip=type=tanh:threshold=0.7,lowpass=f=8500,"
             "acompressor=threshold=0.15:ratio=2.5:attack=10:release=150")
-GAP = 0.32  # pause between sentences, seconds
+GAP = 0.14  # pause between sentences, seconds
 INTRO = ("Hi, I'm Hamish Rannoch, the author of The Drowned Concordat: a book about what happens "
          "when the oceans rise, and humanity is pushed to the brink.")
 
@@ -35,7 +35,7 @@ def run(*cmd):
 
 
 def sentences(text):
-    return [s.strip() for s in re.split(r"(?<=[.!?:])\s+", text) if s.strip()]
+    return [s.strip() for s in re.split(r"(?<=[.!?])\s+", text) if s.strip()]
 
 
 def wav_len(p):
