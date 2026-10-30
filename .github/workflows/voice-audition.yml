@@ -1,0 +1,57 @@
+# Voice audition for Hamish: the episode opening in tuned Piper p281 and in Kokoro's British male voices.
+# Results go to the author-media-audition branch.
+name: Voice audition
+
+on:
+  workflow_dispatch:
+    inputs:
+      line:
+        description: 'Line to read'
+        default: "Hi, I'm Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink."
+
+permissions:
+  contents: write
+
+jobs:
+  audition:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Render
+        run: |
+          set -o pipefail
+          {
+          set -x
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng > /dev/null
+          mkdir -p out
+          LINE="${{ inputs.line }}"
+          # Piper p281: default settings vs livelier settings
+          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
+          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium
+          curl -sSfL -o vctk.onnx $H/en_GB-vctk-medium.onnx; curl -sSfL -o vctk.onnx.json $H/en_GB-vctk-medium.onnx.json
+          id=$(python -c "import json; print(json.load(open('vctk.onnx.json'))['speaker_id_map']['p281'])")
+          echo "$LINE" | ./piper/piper --model vctk.onnx --speaker $id --length_scale 1.25 --output_file out/01-p281-as-before.wav
+          echo "$LINE" | ./piper/piper --model vctk.onnx --speaker $id --length_scale 1.1 --noise_scale 0.9 --noise_w 1.1 --output_file out/02-p281-livelier.wav
+          echo "$LINE" | ./piper/piper --model vctk.onnx --speaker $id --length_scale 1.05 --noise_scale 1.0 --noise_w 1.3 --output_file out/03-p281-most-lively.wav
+          # Kokoro (Apache-2.0), British male voices
+          pip install -q "kokoro>=0.9.4" soundfile
+          LINE="$LINE" python - <<'PY'
+          import os, soundfile as sf, numpy as np
+          from kokoro import KPipeline
+          p = KPipeline(lang_code="b")  # British English
+          line = os.environ["LINE"]
+          for i, v in enumerate(["bm_george", "bm_lewis", "bm_daniel", "bm_fable"], start=4):
+              for speed in (0.92,):
+                  audio = np.concatenate([np.asarray(a) for _, _, a in p(line, voice=v, speed=speed)])
+                  sf.write(f"out/{i:02d}-kokoro-{v}.wav", audio, 24000)
+          PY
+          ls out
+          } 2>&1 | tee log.txt
+      - name: Save results
+        if: always()
+        run: |
+          mkdir -p pub && cp -r out log.txt pub/ 2>/dev/null; cd pub && git init -q -b x && git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Voice audition $GITHUB_RUN_NUMBER"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:refs/heads/author-media-audition
