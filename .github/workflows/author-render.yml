@@ -1,6 +1,5 @@
 # Renders "Hamish talks about the book" episodes into the queue (author/rendered/), ahead of time.
-# Rendering on GitHub's CPU machines is slow (30-60+ min), so it runs at night and keeps a buffer
-# of up to 4 episodes ready. Posting is a separate, quick job: author-post.yml.
+# Runs at night and keeps a buffer of up to 4 episodes ready (each takes a few minutes). Posting is a separate, quick job: author-post.yml.
 name: Author Shorts - render
 
 on:
@@ -12,10 +11,6 @@ on:
       id:
         description: 'Episode id to (re-)render (blank = next one not yet rendered)'
         default: ''
-      sharpen:
-        description: 'Sharpen the face with GFPGAN (much slower)'
-        type: boolean
-        default: false
 
 permissions:
   contents: write
@@ -27,7 +22,7 @@ concurrency:
 jobs:
   render:
     runs-on: ubuntu-22.04
-    timeout-minutes: 300
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -62,19 +57,22 @@ jobs:
           elif grep -q NO_EPISODES_LEFT voice.log; then echo "Every episode is rendered or posted. Add more to author/episodes.json."; echo "done=1" >> $GITHUB_OUTPUT
           else cat voice.log; exit 1; fi
 
-      - name: Animate Hamish (SadTalker)
+      - name: Animate Hamish (Wav2Lip lip-sync)
         if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
         run: |
-          git clone -q --depth 1 https://github.com/OpenTalker/SadTalker.git
-          cd SadTalker
-          pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cpu
-          pip install -q -r requirements.txt
-          bash scripts/download_models.sh > /dev/null 2>&1
-          ENH=""; [ "${{ inputs.sharpen }}" = "true" ] && ENH="--enhancer gfpgan"
+          git clone -q --depth 1 https://github.com/Rudrabha/Wav2Lip.git
+          cd Wav2Lip
+          pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+          pip install -q "numpy==1.23.5" "librosa==0.9.2" "numba==0.56.4" opencv-python-headless==4.7.0.72 tqdm scipy
+          for u in https://huggingface.co/camenduru/Wav2Lip/resolve/main/checkpoints/wav2lip_gan.pth \
+                   https://huggingface.co/numz/wav2lip_studio/resolve/main/Wav2lip/wav2lip_gan.pth; do
+            curl -sSfL -o checkpoints/wav2lip_gan.pth "$u" && break
+          done
+          curl -sSfL -o face_detection/detection/sfd/s3fd.pth https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth \
+            || curl -sSfL -o face_detection/detection/sfd/s3fd.pth https://huggingface.co/camenduru/Wav2Lip/resolve/main/face_detection/detection/sfd/s3fd.pth
           for part in open close; do
-            python inference.py --driven_audio ../work/$part-16k.wav --source_image ../work/portrait.jpg \
-              --result_dir ../work/st-$part --still --preprocess full $ENH --cpu --size 256
-            cp "$(find ../work/st-$part -name '*.mp4' | head -1)" ../work/$part.mp4
+            python inference.py --checkpoint_path checkpoints/wav2lip_gan.pth --face ../work/portrait.jpg \
+              --audio ../work/$part-16k.wav --outfile ../work/$part.mp4 --pads 0 15 0 0 --resize_factor 1 --nosmooth
           done
 
       - name: Compose and add to the queue

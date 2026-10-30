@@ -26,6 +26,8 @@ VOICE_FX = ("aresample=44100,rubberband=pitch=0.93:formant=preserved,bass=g=5:f=
             "asoftclip=type=tanh:threshold=0.7,lowpass=f=8500,"
             "acompressor=threshold=0.15:ratio=2.5:attack=10:release=150")
 GAP = 0.38  # pause between sentences, seconds
+INTRO = ("Hi, I'm Hamish Rannoch, the author of The Drowned Concordat: a book about what happens "
+         "when the oceans rise, and humanity is pushed to the brink.")
 
 
 def run(*cmd):
@@ -64,9 +66,10 @@ def voice(args):
     WORK.mkdir(exist_ok=True)
     spk = json.load(open(args.model + ".json"))["speaker_id_map"][args.speaker]
     plan = {"episode": ep, "parts": {}}
+    texts = {"open": INTRO, "voiceover": ep["voiceover"], "close": ep["close"]}
     for part in ("open", "voiceover", "close"):
         pieces, timings, t = [], [], 0.0
-        for i, s in enumerate(sentences(ep[part])):
+        for i, s in enumerate(sentences(texts[part])):
             raw = WORK / f"{part}-{i}-raw.wav"
             p = subprocess.run([args.piper, "--model", args.model, "--speaker", str(spk),
                                 "--length_scale", str(args.pace), "--output_file", str(raw)],
@@ -140,13 +143,22 @@ def compose(args):
         dur = parts[part]["duration"] + 0.25
         seg = WORK / f"seg-{part}.mp4"
         if part == "voiceover":
-            src = ["-stream_loop", "-1", "-i", str(ROOT / "images" / ep["cutaway"])]
-            vf = (f"[0:v]scale=-2:{H},crop={W}:{H},gblur=sigma=30,eq=brightness=-0.2[bg];"
-                  f"[0:v]crop=720:720,scale=1080:1080,setsar=1[fg];[bg][fg]overlay=0:360,fps=30[v]")
+            clip = ROOT / "images" / ep["cutaway"]
+            clip_len = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                             "-of", "csv=p=0", str(clip)], capture_output=True, text=True).stdout)
+            slow = max(1.0, dur / clip_len)  # stretch the clip (gentle slow motion) rather than loop it
+            src = ["-i", str(clip)]
+            vf = (f"[0:v]setpts={slow:.3f}*PTS,split[a][b];[a]scale=-2:{H},crop={W}:{H},gblur=sigma=30,eq=brightness=-0.2[bg];"
+                  f"[b]crop=720:720,scale=1080:1080,setsar=1[fg];[bg][fg]overlay=0:360,fps=30[v]")
         else:
             src = ["-i", str(WORK / f"{part}.mp4")]
+            # slow camera move so the shot is never static: push in on the open, ease out on the close
+            frames = max(1, int(dur * 25))
+            z = (f"1+0.09*on/{frames}" if part == "open" else f"1.09-0.09*on/{frames}")
             vf = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},gblur=sigma=30,"
-                  f"eq=brightness=-0.2[bg];[0:v]scale={W}:-2,setsar=1[fg];[bg][fg]overlay=0:(H-h)/2-60,fps=30[v]")
+                  f"eq=brightness=-0.2[bg];[0:v]fps=25,scale={W}:1270,setsar=1,"
+                  f"zoompan=z='{z}':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)*0.3':d=1:s={W}x1270:fps=25[fg];"
+                  f"[bg][fg]overlay=0:(H-h)/2-60,fps=30[v]")
         run("ffmpeg", "-v", "error", "-y", *src, "-i", str(WORK / f"{part}.wav"), "-filter_complex", vf,
             "-map", "[v]", "-map", "1:a", "-t", f"{dur:.2f}", "-c:v", "libx264", "-preset", "veryfast",
             "-crf", "20", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k", "-ar", "44100", "-af", "apad", str(seg))
@@ -195,7 +207,7 @@ def post_next(args):
     out = ROOT / "generated" / f"{stamp}-author-{ep['id']}.mp4"
     out.parent.mkdir(exist_ok=True)
     shutil.copy(AUTHOR / "rendered" / f"{ep['id']}.mp4", out)
-    caption = (f"{ep['title']}. {ep['open']}\n\n"
+    caption = (f"{ep['title']}. {ep['teaser']}\n\n"
                "The Drowned Concordat, Book One, is out now on Kindle (link in bio).\n\n"
                "Hamish is an AI-animated narrator voicing the author's words.\n\n"
                "#TheDrownedConcordat #scifi #dystopia #climatefiction #booktok #bookstagram #kindle #Shorts")
