@@ -3,9 +3,8 @@
 name: Author Shorts - post
 
 on:
-  # schedule switched on once the first episode is approved:
-  # schedule:
-  #   - cron: '37 16 * * 2,4,6'   # Tue/Thu/Sat 16:37 UTC
+  schedule:
+    - cron: '37 16 * * 2,4,6'   # Tue/Thu/Sat 16:37 UTC
   workflow_dispatch:
     inputs:
       dry_run:

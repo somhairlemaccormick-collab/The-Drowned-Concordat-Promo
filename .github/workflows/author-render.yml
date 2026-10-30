@@ -4,9 +4,8 @@
 name: Author Shorts - render
 
 on:
-  # schedule switched on once posting is approved:
-  # schedule:
-  #   - cron: '23 1 * * *'   # nightly, 01:23 UTC
+  schedule:
+    - cron: '23 1 * * *'   # nightly, 01:23 UTC
   workflow_dispatch:
     inputs:
       id:
