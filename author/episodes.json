@@ -9,6 +9,16 @@
     "teaser": "The crops failed, and what's left of humanity survives on a synthetic food gel."
   },
   {
+    "id": "01b-storm-season",
+    "title": "Storm season",
+    "portrait": "hamish-study.jpg",
+    "cutaway": "none (pre-made clip: Hamish in his study watching the storm hit the Bulwark)",
+    "voiceover": "Storm season on the Bulwark. Every wave is a test the engineers have to pass. And the ocean is patient.",
+    "close": "The Drowned Concordat, Book One. Out now on Kindle.",
+    "teaser": "Storm season on the Bulwark. Every wave is a test the engineers have to pass.",
+    "prerendered": true
+  },
+  {
     "id": "02-food-from-a-vat",
     "title": "Food from a vat",
     "portrait": "hamish-study.jpg",
