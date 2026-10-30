@@ -1,16 +1,20 @@
 # Renders "Hamish talks about the book" episodes into the queue (author/rendered/), ahead of time.
-# Runs at night and keeps a buffer of up to 4 episodes ready (each takes a few minutes). Posting is a separate, quick job: author-post.yml.
+# Nightly it tops the queue up to 4 waiting episodes; run it by hand to render a batch or redo one.
+# Posting is a separate, quick job: author-post.yml.
 name: Author Shorts - render
 
 on:
-  # schedule switched on once the first episode is approved:
+  # schedule switched on once posting is approved:
   # schedule:
   #   - cron: '23 1 * * *'   # nightly, 01:23 UTC
   workflow_dispatch:
     inputs:
       id:
-        description: 'Episode id to (re-)render (blank = next one not yet rendered)'
+        description: 'Episode id to (re-)render (blank = next ones not yet rendered)'
         default: ''
+      count:
+        description: 'How many episodes to render (ignores the 4-episode buffer limit)'
+        default: '1'
 
 permissions:
   contents: write
@@ -22,38 +26,34 @@ concurrency:
 jobs:
   render:
     runs-on: ubuntu-22.04
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
 
-      - name: Is the queue full?
-        id: queue
+      - name: How many to render?
+        id: plan
         run: |
           ready=0
           for f in author/rendered/*.mp4; do [ -e "$f" ] || continue; id=$(basename "$f" .mp4); grep -qx "$id" author/posted.txt 2>/dev/null || ready=$((ready+1)); done
           echo "$ready episode(s) waiting in the queue"
-          if [ -z "${{ inputs.id }}" ] && [ $ready -ge 4 ]; then echo "full=1" >> $GITHUB_OUTPUT; fi
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then n="${{ inputs.count }}"; [ -n "${{ inputs.id }}" ] && n=1
+          else n=$((4 - ready)); fi
+          [ "$n" -lt 0 ] && n=0
+          echo "Rendering $n"; echo "n=$n" >> $GITHUB_OUTPUT
 
-      - uses: actions/setup-python@v5
-        if: steps.queue.outputs.full != '1'
-        with:
-          python-version: '3.11'
-      - name: Voice (Kokoro, "Fable")
-        id: voice
-        if: steps.queue.outputs.full != '1'
+      - name: Tools
+        if: steps.plan.outputs.n != '0'
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 > /dev/null
-          pip install -q pillow soundfile "kokoro>=0.9.4"
-          if python author/make_episode.py voice --id "${{ inputs.id }}" > voice.log 2>&1; then cat voice.log
-          elif grep -q NO_EPISODES_LEFT voice.log; then echo "Every episode is rendered or posted. Add more to author/episodes.json."; echo "done=1" >> $GITHUB_OUTPUT
-          else cat voice.log; exit 1; fi
+          # voice: Kokoro needs Python 3.10+; lip-sync: Wav2Lip needs Python 3.8 (separate virtualenvs)
+          sudo apt-get install -y -qq python3.10-venv > /dev/null
+          python3.10 -m venv /tmp/voice && /tmp/voice/bin/pip install -q pillow soundfile "kokoro>=0.9.4"
       - uses: actions/setup-python@v5
-        if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
+        if: steps.plan.outputs.n != '0'
         with:
           python-version: '3.8'
-
-      - name: Animate Hamish (Wav2Lip lip-sync)
-        if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
+      - name: Lip-sync tool (Wav2Lip)
+        if: steps.plan.outputs.n != '0'
         run: |
           pip install -q pillow
           git clone -q --depth 1 https://github.com/Rudrabha/Wav2Lip.git
@@ -66,18 +66,25 @@ jobs:
           done
           curl -sSfL -o face_detection/detection/sfd/s3fd.pth https://www.adrianbulat.com/downloads/python-fan/s3fd-619a316812.pth \
             || curl -sSfL -o face_detection/detection/sfd/s3fd.pth https://huggingface.co/camenduru/Wav2Lip/resolve/main/face_detection/detection/sfd/s3fd.pth
-          for part in open close; do
-            python inference.py --checkpoint_path checkpoints/wav2lip_gan.pth --face ../work/portrait.jpg \
-              --audio ../work/$part-16k.wav --outfile ../work/$part.mp4 --pads 0 15 0 0 --resize_factor 1 --nosmooth
-          done
 
-      - name: Compose and add to the queue
-        if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
+      - name: Render
+        if: steps.plan.outputs.n != '0'
         run: |
-          python author/make_episode.py compose
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add author/rendered
-          git commit -m "Author Short rendered: ${{ steps.voice.outputs.episode }}"
+          for i in $(seq 1 ${{ steps.plan.outputs.n }}); do
+            rm -rf work
+            if ! /tmp/voice/bin/python author/make_episode.py voice --id "${{ inputs.id }}" > voice.log 2>&1; then
+              cat voice.log; grep -q NO_EPISODES_LEFT voice.log && { echo "Every episode is rendered or posted."; break; }; exit 1
+            fi
+            tail -1 voice.log
+            (cd Wav2Lip && for part in open close; do
+              python inference.py --checkpoint_path checkpoints/wav2lip_gan.pth --face ../work/portrait.jpg \
+                --audio ../work/$part-16k.wav --outfile ../work/$part.mp4 --pads 0 15 0 0 --resize_factor 1 --nosmooth > /dev/null
+            done)
+            python author/make_episode.py compose
+            git add author/rendered
+            git commit -qm "Author Short rendered: $(python -c "import json;print(json.load(open('work/plan.json'))['episode']['id'])")"
+          done
           git pull --rebase origin main
           git push origin HEAD:main
