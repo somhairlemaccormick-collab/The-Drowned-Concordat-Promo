@@ -37,29 +37,25 @@ jobs:
       - uses: actions/setup-python@v5
         if: steps.queue.outputs.full != '1'
         with:
-          python-version: '3.8'
-
-      - name: Tools
-        if: steps.queue.outputs.full != '1'
-        run: |
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg libsndfile1 > /dev/null
-          pip install -q pillow
-          curl -sSL https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz | tar xz
-          H=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_GB/vctk/medium
-          curl -sSfL -o vctk.onnx $H/en_GB-vctk-medium.onnx
-          curl -sSfL -o vctk.onnx.json $H/en_GB-vctk-medium.onnx.json
-
-      - name: Voice
+          python-version: '3.11'
+      - name: Voice (Kokoro, "Fable")
         id: voice
         if: steps.queue.outputs.full != '1'
         run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 > /dev/null
+          pip install -q pillow soundfile "kokoro>=0.9.4"
           if python author/make_episode.py voice --id "${{ inputs.id }}" > voice.log 2>&1; then cat voice.log
           elif grep -q NO_EPISODES_LEFT voice.log; then echo "Every episode is rendered or posted. Add more to author/episodes.json."; echo "done=1" >> $GITHUB_OUTPUT
           else cat voice.log; exit 1; fi
+      - uses: actions/setup-python@v5
+        if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
+        with:
+          python-version: '3.8'
 
       - name: Animate Hamish (Wav2Lip lip-sync)
         if: steps.queue.outputs.full != '1' && steps.voice.outputs.done != '1'
         run: |
+          pip install -q pillow
           git clone -q --depth 1 https://github.com/Rudrabha/Wav2Lip.git
           cd Wav2Lip
           pip install -q torch==1.12.1+cpu torchvision==0.13.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu

@@ -25,7 +25,7 @@ VOICE_FX = ("aresample=44100,rubberband=pitch=0.93:formant=preserved,bass=g=5:f=
             "equalizer=f=320:t=q:w=1.2:g=1.5,equalizer=f=3500:t=q:w=1.5:g=-1.5,"
             "asoftclip=type=tanh:threshold=0.7,lowpass=f=8500,"
             "acompressor=threshold=0.15:ratio=2.5:attack=10:release=150")
-GAP = 0.38  # pause between sentences, seconds
+GAP = 0.32  # pause between sentences, seconds
 INTRO = ("Hi, I'm Hamish Rannoch, the author of The Drowned Concordat: a book about what happens "
          "when the oceans rise, and humanity is pushed to the brink.")
 
@@ -64,16 +64,28 @@ def voice(args):
             sys.exit("NO_EPISODES_LEFT")
         ep = left[0]
     WORK.mkdir(exist_ok=True)
-    spk = json.load(open(args.model + ".json"))["speaker_id_map"][args.speaker]
+    if args.engine == "kokoro":
+        import numpy as np, soundfile as sf
+        from kokoro import KPipeline
+        kp = KPipeline(lang_code="b")  # British English
+
+        def synth(text, raw):
+            audio = np.concatenate([np.asarray(a) for _, _, a in kp(text, voice=args.voice, speed=args.speed)])
+            sf.write(str(raw), audio, 24000)
+    else:
+        spk = json.load(open(args.model + ".json"))["speaker_id_map"][args.speaker]
+
+        def synth(text, raw):
+            subprocess.run([args.piper, "--model", args.model, "--speaker", str(spk),
+                            "--length_scale", str(args.pace), "--output_file", str(raw)],
+                           input=text.encode(), check=True, capture_output=True)
     plan = {"episode": ep, "parts": {}}
     texts = {"open": INTRO, "voiceover": ep["voiceover"], "close": ep["close"]}
     for part in ("open", "voiceover", "close"):
         pieces, timings, t = [], [], 0.0
         for i, s in enumerate(sentences(texts[part])):
             raw = WORK / f"{part}-{i}-raw.wav"
-            p = subprocess.run([args.piper, "--model", args.model, "--speaker", str(spk),
-                                "--length_scale", str(args.pace), "--output_file", str(raw)],
-                               input=s.encode(), check=True, capture_output=True)
+            synth(s, raw)
             fx = WORK / f"{part}-{i}.wav"
             run("ffmpeg", "-v", "error", "-y", "-i", str(raw), "-af", VOICE_FX, "-ac", "1", "-ar", "44100", str(fx))
             d = wav_len(fx)
@@ -228,5 +240,8 @@ if __name__ == "__main__":
     ap.add_argument("--model", default="vctk.onnx")
     ap.add_argument("--speaker", default="p281")
     ap.add_argument("--pace", type=float, default=1.25)
+    ap.add_argument("--engine", default="kokoro", choices=["kokoro", "piper"])
+    ap.add_argument("--voice", default="bm_fable", help="Kokoro voice (Hamish = bm_fable)")
+    ap.add_argument("--speed", type=float, default=0.92, help="Kokoro speed (1 = normal)")
     a = ap.parse_args()
     {"voice": voice, "compose": compose, "post": post_next}[a.step](a)
