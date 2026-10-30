@@ -1,0 +1,33 @@
+# One-off narration in Hamish's voice for videos that aren't standard author episodes.
+# Input: narration parts separated by " || ". Results go to the author-media-narration branch.
+name: Narrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      parts:
+        description: 'Narration parts, separated by " || "'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  narrate:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Voice
+        env:
+          PARTS: ${{ inputs.parts }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg espeak-ng libsndfile1 rubberband-cli > /dev/null
+          sudo apt-get install -y -qq python3.10-venv > /dev/null
+          python3.10 -m venv /tmp/voice && /tmp/voice/bin/pip install -q pillow soundfile "kokoro>=0.9.4"
+          mapfile -t ARGS < <(python3 -c "import os; [print(p.strip()) for p in os.environ['PARTS'].split('||')]")
+          /tmp/voice/bin/python tools/narrate.py narration "${ARGS[@]}"
+      - name: Save results to the author-media-narration branch
+        run: |
+          cd narration && git init -q -b m && git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Narration run $GITHUB_RUN_NUMBER"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:refs/heads/author-media-narration
