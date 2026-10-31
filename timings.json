@@ -1,0 +1,34 @@
+[
+ {
+  "text": "The sea took the world it knew. The Bulwark keeps what's left.",
+  "duration": 5.805,
+  "captions": [
+   {
+    "text": "The sea took the world it knew.",
+    "start": 0.0,
+    "end": 2.8
+   },
+   {
+    "text": "The Bulwark keeps what's left.",
+    "start": 2.94,
+    "end": 5.665
+   }
+  ]
+ },
+ {
+  "text": "Climate fiction where the flood has already happened. This is what comes after.",
+  "duration": 6.705,
+  "captions": [
+   {
+    "text": "Climate fiction where the flood has already happened.",
+    "start": 0.0,
+    "end": 3.875
+   },
+   {
+    "text": "This is what comes after.",
+    "start": 4.015,
+    "end": 6.565
+   }
+  ]
+ }
+]
