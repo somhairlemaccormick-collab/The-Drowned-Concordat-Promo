@@ -28,6 +28,16 @@
     "teaser": "Imagine never tasting food that grew in the ground."
   },
   {
+    "id": "02b-meet-hamish",
+    "title": "Meet Hamish",
+    "portrait": "hamish-study.jpg",
+    "cutaway": "none (pre-made clip: Hamish walking a misty Edinburgh close and signing his notebook)",
+    "voiceover": "Hi, I'm Hamish Rannoch, the author of The Drowned Concordat: a book about what happens when the oceans rise, and humanity is pushed to the brink.",
+    "close": "The Drowned Concordat, Book One. Out now on Kindle.",
+    "teaser": "A book about what happens when the oceans rise, and humanity is pushed to the brink.",
+    "prerendered": true
+  },
+  {
     "id": "03-elara",
     "title": "Meet Elara",
     "portrait": "hamish-edinburgh.jpg",
@@ -46,6 +56,16 @@
     "teaser": "People ask me, why a wall? Because when the water came, a wall was the only promise anyone could keep."
   },
   {
+    "id": "04b-real-food",
+    "title": "Real food",
+    "portrait": "hamish-study.jpg",
+    "cutaway": "none (pre-made clip: Hamish writing by the fire in a pub, pint on the table)",
+    "voiceover": "In the Delta, real food is something only the richest have ever tasted. Out on the Bulwark, the wind tastes of salt. Inside, nothing tastes of anything.",
+    "close": "The Drowned Concordat, Book One. Out now on Kindle.",
+    "teaser": "In the Delta, real food is something only the richest have ever tasted.",
+    "prerendered": true
+  },
+  {
     "id": "05-counted",
     "title": "Every calorie counted",
     "portrait": "hamish-study.jpg",
@@ -62,6 +82,16 @@
     "voiceover": "Two sisters, one drowned world, and two very different ideas of how to save it. Elara feeds the Delta from a vat. Her sister Becca still believes the future grows in soil.",
     "close": "That argument sits at the heart of The Drowned Concordat. Book One is out now on Kindle.",
     "teaser": "Two sisters, one drowned world, and two very different ideas of how to save it."
+  },
+  {
+    "id": "06b-the-world-it-knew",
+    "title": "The world it knew",
+    "portrait": "hamish-study.jpg",
+    "cutaway": "none (pre-made clip: travel montage of Hamish writing around the world)",
+    "voiceover": "The sea took the world it knew. The Bulwark keeps what's left. Climate fiction where the flood has already happened. This is what comes after.",
+    "close": "The Drowned Concordat, Book One. Out now on Kindle.",
+    "teaser": "The sea took the world it knew. The Bulwark keeps what's left.",
+    "prerendered": true
   },
   {
     "id": "07-faith",
