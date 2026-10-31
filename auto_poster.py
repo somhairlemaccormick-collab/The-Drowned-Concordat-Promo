@@ -1137,6 +1137,44 @@ def build(n=None, kind=None):
     return post
 
 
+# ---------------------------------------------------------------- Kindle free weekends
+# KDP runs free promotions on US Pacific time, so captions follow the Pacific date.
+FREE_DAYS = ["2026-11-14", "2026-11-15", "2026-11-21", "2026-11-22"]
+
+
+def promo_line(now=None):
+    """Extra caption line for the free-weekend promotion, or None outside it."""
+    from zoneinfo import ZoneInfo
+    from datetime import date, timedelta
+    today = (now or datetime.now(timezone.utc)).astimezone(ZoneInfo("America/Los_Angeles")).date()
+    free = sorted(date.fromisoformat(d) for d in FREE_DAYS)
+    if today in free:
+        last = today == free[-1] or (today + timedelta(days=1)) not in free
+        return ("🎁 FREE on Kindle " + ("today only, last day" if last else "today and tomorrow") +
+                f". Grab your copy: {AMAZON_URL}", "top")
+    weekends = [free[i:i + 2] for i in range(0, len(free), 2)]
+    for sat, sun in weekends:
+        if 0 < (sat - today).days <= 4:
+            when = "this weekend" if (sat - today).days <= 2 else f"on {sat:%a %-d} & {sun:%a %-d %b}"
+            return (f"📅 The Drowned Concordat is FREE on Kindle {when}. Set a reminder!", "bottom")
+    for sat, sun in weekends:
+        if 1 <= (today - sun).days <= 4:
+            return ("Picked up The Drowned Concordat free this weekend? A short, honest Amazon review "
+                    "helps other readers find it, and means a lot.", "bottom")
+    return None
+
+
+def with_promo(caption, now=None):
+    p = promo_line(now)
+    if not p:
+        return caption
+    text, where = p
+    if where == "top":
+        return f"{text}\n\n{caption}"
+    head, sep, tail = caption.rpartition("\n\n")  # keep hashtags last
+    return f"{head}\n\n{text}\n\n{tail}" if sep else f"{caption}\n\n{text}"
+
+
 def _head_ok(url):
     import requests
 
@@ -1179,6 +1217,7 @@ def post():
     import requests
 
     data = json.loads(POST_FILE.read_text(encoding="utf-8"))
+    data["text"] = with_promo(data["text"])  # free-weekend line, if one applies today
     sha = os.environ.get("PUBLISHED_SHA", "").strip()
     kind = data.get("kind", "quote")
 

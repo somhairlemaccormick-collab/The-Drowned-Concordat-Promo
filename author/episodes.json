@@ -110,5 +110,25 @@
     "voiceover": "If you love Station Eleven, The Water Knife or The Wind-Up Girl, this one is for you. A hard science fiction dystopia, set behind the sea walls of a flooded Europe.",
     "close": "The Drowned Concordat, Book One. Out now on Kindle. Come and see what's left.",
     "teaser": "If you love Station Eleven, The Water Knife or The Wind-Up Girl, this one is for you."
+  },
+  {
+    "id": "free-weekend-1",
+    "post_on": "2026-11-14",
+    "title": "Free this weekend",
+    "portrait": "hamish-portrait.png",
+    "cutaway": "video-anim-bulwark-storm.mp4",
+    "voiceover": "The sea took the world we knew. Behind the Bulwark, five hundred million people live on a synthetic food gel, and the people running the system no longer understand the people they govern.",
+    "close": "This weekend only, The Drowned Concordat is free on Kindle. Grab your copy, and if it stays with you, leave an honest review. It means more than you'd think.",
+    "teaser": "This weekend only, The Drowned Concordat is free on Kindle."
+  },
+  {
+    "id": "free-weekend-2",
+    "post_on": "2026-11-21",
+    "title": "Last chance: free this weekend",
+    "portrait": "hamish-study.jpg",
+    "cutaway": "video-anim-city-terraces.mp4",
+    "voiceover": "Two sisters, one drowned world, and two very different ideas of how to save it. One feeds the Delta from a vat. The other still believes the future grows in soil.",
+    "close": "It's your last chance to read The Drowned Concordat free on Kindle. This weekend only. And if you've already read it, an honest review would mean a great deal.",
+    "teaser": "Last chance: The Drowned Concordat is free on Kindle this weekend only."
   }
 ]

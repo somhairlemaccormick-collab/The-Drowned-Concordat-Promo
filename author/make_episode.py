@@ -230,7 +230,11 @@ def post_next(args):
     episodes = json.loads((AUTHOR / "episodes.json").read_text(encoding="utf-8"))
     posted_file = AUTHOR / "posted.txt"
     done = set(posted_file.read_text().split()) if posted_file.exists() else set()
-    ready = [e for e in episodes if e["id"] not in done and (AUTHOR / "rendered" / f"{e['id']}.mp4").exists()]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    ready = [e for e in episodes if e["id"] not in done and (AUTHOR / "rendered" / f"{e['id']}.mp4").exists()
+             and e.get("post_on", today) <= today]
+    # an episode dated for today (e.g. a free-weekend special) goes first
+    ready.sort(key=lambda e: 0 if e.get("post_on") == today else 1)
     if not ready:
         print("QUEUE_EMPTY: no rendered episodes waiting.")
         if os.environ.get("GITHUB_OUTPUT"):
