@@ -720,6 +720,57 @@ def _ffmpeg():
     return imageio_ffmpeg.get_ffmpeg_exe()
 
 
+# Moving footage for Reels: a clip that matches a background still is used instead of panning across the still.
+# Put clips in backgrounds/motion/ with the same name as the still (e.g. 08-bulwark-aurora.mp4).
+MOTION_ALIASES = {  # older stills whose animated versions already live in images/
+    "02-bulwark-storm": "images/video-anim-bulwark-storm.mp4",
+    "03-surveillance-street": "images/video-anim-surveillance-street.mp4",
+    "04-bulwark-coast": "images/video-anim-bulwark-coast-1.mp4",
+    "05-city-terraces": "images/video-anim-city-terraces.mp4",
+}
+
+
+def _motion_clip(bg_path):
+    own = BACKGROUNDS / "motion" / f"{Path(bg_path).stem}.mp4"
+    if own.exists():
+        return own
+    alias = MOTION_ALIASES.get(Path(bg_path).stem)
+    return ROOT / alias if alias and (ROOT / alias).exists() else None
+
+
+def _probe(clip):
+    """(width, height, seconds) of a video, read from ffmpeg's banner (ffprobe isn't always installed)."""
+    import re, subprocess
+
+    err = subprocess.run([_ffmpeg(), "-hide_banner", "-i", str(clip)], capture_output=True, text=True).stderr
+    w, h = map(int, re.search(r"Video:.*?(\d{3,5})x(\d{3,5})", err).groups())
+    hh, mm, ss = re.search(r"Duration: (\d+):(\d+):([\d.]+)", err).groups()
+    return w, h, int(hh) * 3600 + int(mm) * 60 + float(ss)
+
+
+def _motion_frames(clip, size, frames):
+    """Yield `frames` RGB frames of `clip` at `size`, stretched (gently slowed) to fill the quote section."""
+    import subprocess
+
+    from PIL import Image
+
+    _, _, secs = _probe(clip)
+    stretch = max(1.0, QUOTE_SECONDS / max(secs, 0.1))
+    w, h = size
+    proc = subprocess.Popen([_ffmpeg(), "-v", "error", "-i", str(clip), "-an", "-vf",
+                             f"setpts={stretch:.4f}*PTS,fps={FPS},scale={w}:{h}:flags=lanczos",
+                             "-frames:v", str(frames), "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
+                            stdout=subprocess.PIPE)
+    last = None
+    for _ in range(frames):
+        buf = proc.stdout.read(w * h * 3)
+        if len(buf) == w * h * 3:
+            last = Image.frombytes("RGB", (w, h), buf)
+        yield last
+    proc.stdout.close()
+    proc.wait()
+
+
 def _ease(x):
     x = max(0.0, min(1.0, x))
     return x * x * (3 - 2 * x)
@@ -818,10 +869,20 @@ def draw_reel(text, bg_path, out_path, kicker="OVERHEARD IN THE DELTA", cover_pa
     grad = grad.resize((VW, VH))
     ink = Image.new("RGB", (VW, VH), INK)
 
+    motion = _motion_clip(bg_path)
+    if motion:
+        cw, ch, _ = _probe(motion)
+        if cw / ch < 1:
+            motion = None  # only landscape footage is used (as the moving band)
+    if motion:
+        landscape = True
     if landscape:
         band_h, band_y = 1000, 110
         s = band_h / src.height
         band = src.resize((round(src.width * s), band_h), Image.LANCZOS)
+        if motion:
+            mw = round(cw * band_h / ch / 2) * 2
+            band = band.resize((mw, band_h), Image.LANCZOS)
         travel = max(0, band.width - VW)
         mask = Image.new("L", (VW, band_h), 255)
         for y in range(band_h):
@@ -849,6 +910,7 @@ def draw_reel(text, bg_path, out_path, kicker="OVERHEARD IN THE DELTA", cover_pa
     proc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
 
     quote_frames = FPS * QUOTE_SECONDS
+    footage = _motion_frames(motion, band.size, quote_frames) if motion else None
     fade = int(FPS * 0.4)
     last_quote = None
     for i in range(FPS * SECONDS):
@@ -856,6 +918,8 @@ def draw_reel(text, bg_path, out_path, kicker="OVERHEARD IN THE DELTA", cover_pa
             t = i / (quote_frames - 1)
             frame = base.copy()
             if landscape:
+                if footage:
+                    band = next(footage) or band
                 x = travel * _ease(t)
                 part = band.transform((VW, band_h), Image.EXTENT, (x, 0, x + VW, band_h), Image.BICUBIC)
                 frame.paste(part, (0, band_y), mask)
