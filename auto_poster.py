@@ -1093,6 +1093,24 @@ def build(n=None, kind=None):
         caption, source = f"{plain(text)}\n\n{prompt}\n\n{cta}\n\n{HASHTAGS} #Shorts", bg.name
         title = youtube_title(text)
         log_fmt, log_line = "reel", text
+    elif kind == "promo":
+        # extra free-day Reel; only on a free day (Pacific time), otherwise nothing is posted
+        p = promo_line()
+        if not p or p[1] != "top":
+            print("Not a free-promotion day: no extra post.")
+            POST_FILE.write_text(json.dumps({"kind": "skip"}), encoding="utf-8")
+            return {"kind": "skip"}
+        from zoneinfo import ZoneInfo
+        pt = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Los_Angeles"))
+        i = sorted(FREE_DAYS).index(pt.strftime("%Y-%m-%d")) * 2 + (1 if datetime.now(timezone.utc).hour >= 17 else 0)
+        text = PROMO_REEL_LINES[i % len(PROMO_REEL_LINES)]
+        bg = load_backgrounds()[(n + i) % len(load_backgrounds())]
+        card = card.with_suffix(".mp4")
+        draw_reel(text, bg, card, kicker="FREE ON KINDLE THIS WEEKEND", cover_path=COVERS[i % len(COVERS)])
+        caption, source = f"{plain(text)}\n\n{HASHTAGS} #freebook #kindlefreebies #Shorts", bg.name
+        title = youtube_title("FREE on Kindle: " + plain(text))
+        log_fmt, log_line = "promo", text
+        kind = "reel"  # goes out through Make's Reel route (Instagram, YouTube, Drive for TikTok)
     elif kind == "amazon":
         headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
         cover = COVERS[week % len(COVERS)]
@@ -1136,6 +1154,18 @@ def build(n=None, kind=None):
     print(f"Post #{n + 1} ({kind})\nCaption:\n{caption}\nSource: {source}\nFile: {post['image_path']}")
     return post
 
+
+# Extra Reels on the free days (two a day); *asterisks* = accent colour
+PROMO_REEL_LINES = [
+    "The Drowned Concordat is *free* on Kindle today.",
+    "Five hundred million people. One food gel. *Free* to read this weekend.",
+    "The sea took the world we knew. Read what came after, *free* today.",
+    "The Delta is *open*. Free on Kindle, this weekend only.",
+    "A drowned world. A ration of gel. A system that stopped listening. *Free* today.",
+    "Climate fiction where the flood has already happened. *Free* on Kindle now.",
+    "What would you believe in, if your next meal depended on it? *Free* today.",
+    "Last chance: read The Drowned Concordat *free* before the weekend ends.",
+]
 
 # ---------------------------------------------------------------- Kindle free weekends
 # KDP runs free promotions on US Pacific time, so captions follow the Pacific date.
@@ -1217,6 +1247,9 @@ def post():
     import requests
 
     data = json.loads(POST_FILE.read_text(encoding="utf-8"))
+    if data.get("kind") == "skip":
+        print("Nothing to post today.")
+        return
     data["text"] = with_promo(data["text"])  # free-weekend line, if one applies today
     sha = os.environ.get("PUBLISHED_SHA", "").strip()
     kind = data.get("kind", "quote")
