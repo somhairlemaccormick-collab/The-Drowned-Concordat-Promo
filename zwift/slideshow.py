@@ -8,6 +8,8 @@
 Without --topic it takes the next topic not yet in slideshows_posted.txt.
 Each photo gets ~3 s with a slow pan (landscape) or slow zoom (portrait/square) over a blurred
 copy of itself, 0.4 s crossfades, and the same headline style as the Zwift Shorts.
+If zwift/outro.mp4 exists it is crossfaded onto the end (its own audio is dropped; music runs
+over the whole Short). Pass --no-outro to leave it off.
 """
 import argparse, json, os, subprocess, sys, tempfile
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
@@ -19,6 +21,7 @@ import make_and_post as mp  # noqa: E402
 
 TOPICS = os.path.join(HERE, "slideshows.json")
 POSTED = os.path.join(HERE, "slideshows_posted.txt")
+OUTRO = os.path.join(HERE, "outro.mp4")
 FPS, SECS, FADE = 30, 3.0, 0.4
 PH = 1200  # height of the photo band (centre of the screen)
 TOP = 510  # photo band starts below the headline
@@ -54,7 +57,12 @@ def frame(bg, fg, mode, t):
     return f
 
 
-def render(out, photos, hook, sub, music=None):
+def probe_dur(path):
+    return float(subprocess.check_output(["ffprobe", "-v", "error", "-show_entries", "format=duration",
+                                          "-of", "csv=p=0", path]).decode().strip())
+
+
+def render(out, photos, hook, sub, music=None, outro=None):
     tmp = tempfile.mkdtemp()
     ov_path = os.path.join(tmp, "ov.png")
     overlay_png(ov_path, hook, sub)
@@ -64,14 +72,10 @@ def render(out, photos, hook, sub, music=None):
     fade = round(FADE * FPS)
     total = len(slides) * n
     dur = total / FPS
+    slides_out = os.path.join(tmp, "slides.mp4")
     cmd = ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-           "-r", str(FPS), "-i", "-"]
-    if music:
-        cmd += ["-stream_loop", "-1", "-i", music, "-af",
-                f"atrim=0:{dur},afade=t=in:d=0.5,afade=t=out:st={dur - 2}:d=2", "-map", "0:v", "-map", "1:a",
-                "-c:a", "aac", "-b:a", "160k", "-shortest"]
-    cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart", out]
+           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+           "-pix_fmt", "yuv420p", slides_out]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     for i, (bg, fg, mode) in enumerate(slides):
         for k in range(n):
@@ -88,6 +92,29 @@ def render(out, photos, hook, sub, music=None):
     if p.wait():
         sys.exit("ffmpeg failed")
 
+    # Join the outro (if any) with a crossfade, then lay the music over the full length.
+    cmd = ["ffmpeg", "-v", "error", "-y", "-i", slides_out]
+    if outro:
+        cmd += ["-i", outro]
+        cmd += ["-filter_complex", f"[0:v]fps={FPS},settb=1/{FPS},setsar=1[s];[1:v]fps={FPS},scale={W}:{H},settb=1/{FPS},setsar=1[o];"
+                f"[s][o]xfade=transition=fade:duration={FADE}:offset={dur - FADE:.3f},format=yuv420p[v]"]
+        vmap = "[v]"
+        dur = dur + probe_dur(outro) - FADE
+    else:
+        vmap = "0:v"
+    nin = 2 if outro else 1
+    if music:
+        cmd += ["-stream_loop", "-1", "-i", music]
+        cmd += ["-map", vmap, "-map", f"{nin}:a",
+                "-af", f"atrim=0:{dur:.3f},afade=t=in:d=0.5,afade=t=out:st={dur - 2:.3f}:d=2",
+                "-c:a", "aac", "-b:a", "160k", "-t", f"{dur:.3f}"]
+    else:
+        cmd += ["-map", vmap]
+    cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart", out]
+    if subprocess.call(cmd):
+        sys.exit("ffmpeg failed (final mux)")
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -96,6 +123,7 @@ def main():
     ap.add_argument("--music")
     ap.add_argument("--preview")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--no-outro", action="store_true")
     ap.add_argument("--privacy", default="public", choices=["public", "unlisted", "private"])
     a = ap.parse_args()
 
@@ -123,8 +151,9 @@ def main():
         tracks = sorted(x for x in os.listdir(a.music) if x.lower().endswith((".mp3", ".m4a", ".wav", ".aac", ".ogg")))
         track = os.path.join(a.music, tracks[len(done) % len(tracks)])
     out = a.preview or os.path.join(tempfile.mkdtemp(), f"slides-{t['id']}.mp4")
-    print(f"Building {t['id']}: {len(photos)} photos, ~{len(photos) * SECS:.0f}s")
-    render(out, photos, t["hook"], t["sub"], music=track)
+    print(f"Building {t['id']}: {len(photos)} photos, ~{len(photos) * SECS:.0f}s" + (" + outro" if os.path.exists(OUTRO) and not a.no_outro else ""))
+    outro = OUTRO if os.path.exists(OUTRO) and not a.no_outro else None
+    render(out, photos, t["hook"], t["sub"], music=track, outro=outro)
     if a.preview:
         print("Preview written:", out)
         return
