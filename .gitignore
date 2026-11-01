@@ -1,2 +1,12 @@
+# per-run scratch
 post.json
+work/
 __pycache__/
+*.pyc
+.DS_Store
+# downloaded by workflows
+Wav2Lip/
+SadTalker/
+piper/
+*.onnx
+*.onnx.json
