@@ -8,8 +8,9 @@
 Without --topic it takes the next topic not yet in slideshows_posted.txt.
 Each photo gets ~3 s with a slow pan (landscape) or slow zoom (portrait/square) over a blurred
 copy of itself, 0.4 s crossfades, and the same headline style as the Zwift Shorts.
-If zwift/outro.mp4 exists it is crossfaded onto the end (its own audio is dropped; music runs
-over the whole Short). Pass --no-outro to leave it off.
+An outro clip from zwift/outros/ is crossfaded onto the end, rotating through the folder in name
+order (a topic can pin one with "outro": "<file name>"). Clips are stored ready-made at 1080x1920,
+30 fps, no audio; music runs over the whole Short. Pass --no-outro to leave it off.
 """
 import argparse, json, os, subprocess, sys, tempfile
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
@@ -21,7 +22,16 @@ import make_and_post as mp  # noqa: E402
 
 TOPICS = os.path.join(HERE, "slideshows.json")
 POSTED = os.path.join(HERE, "slideshows_posted.txt")
-OUTRO = os.path.join(HERE, "outro.mp4")
+OUTROS = os.path.join(HERE, "outros")
+
+
+def pick_outro(topic, n_posted):
+    if not os.path.isdir(OUTROS):
+        return None
+    clips = sorted(x for x in os.listdir(OUTROS) if x.lower().endswith(".mp4"))
+    if topic.get("outro") in clips:
+        return os.path.join(OUTROS, topic["outro"])
+    return os.path.join(OUTROS, clips[n_posted % len(clips)]) if clips else None
 FPS, SECS, FADE = 30, 3.0, 0.4
 PH = 1200  # height of the photo band (centre of the screen)
 TOP = 510  # photo band starts below the headline
@@ -151,8 +161,9 @@ def main():
         tracks = sorted(x for x in os.listdir(a.music) if x.lower().endswith((".mp3", ".m4a", ".wav", ".aac", ".ogg")))
         track = os.path.join(a.music, tracks[len(done) % len(tracks)])
     out = a.preview or os.path.join(tempfile.mkdtemp(), f"slides-{t['id']}.mp4")
-    print(f"Building {t['id']}: {len(photos)} photos, ~{len(photos) * SECS:.0f}s" + (" + outro" if os.path.exists(OUTRO) and not a.no_outro else ""))
-    outro = OUTRO if os.path.exists(OUTRO) and not a.no_outro else None
+    outro = None if a.no_outro else pick_outro(t, len(done))
+    print(f"Building {t['id']}: {len(photos)} photos, ~{len(photos) * SECS:.0f}s"
+          + (f" + outro {os.path.basename(outro)}" if outro else ""))
     render(out, photos, t["hook"], t["sub"], music=track, outro=outro)
     if a.preview:
         print("Preview written:", out)
