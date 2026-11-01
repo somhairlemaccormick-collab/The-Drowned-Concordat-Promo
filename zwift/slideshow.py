@@ -179,7 +179,9 @@ def main():
             text += "\n\nMusic: " + open(credit).read().strip()
     text += "\n\n" + " ".join(t["tags"])
     fname = f"slides-{t['id']}.mp4"
-    mp.publish(out, fname, f"{plain} 🚴 #shorts", text, a.privacy, f"Slideshow {t['id']}")
+    # The outro clips are AI-generated (Gemini), so tell YouTube via Make's containsSyntheticMedia.
+    mp.publish(out, fname, f"{plain} 🚴 #shorts", text, a.privacy, f"Slideshow {t['id']}",
+               extra={"synthetic": True} if outro else None)
     mp.record(POSTED, t["id"], f"Slideshow posted: {t['id']}")
     print("Done:", t["id"])
 

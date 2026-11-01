@@ -74,14 +74,14 @@ def nice(date):
     return datetime.strptime(date, "%Y-%m-%d").strftime("%-d %b %Y")
 
 
-def publish(video, fname, yt_title, text, privacy, label):
+def publish(video, fname, yt_title, text, privacy, label, extra=None):
     """Force-push an orphan commit (video + post.json + workflow) to zwift-media; GitHub sends it to Make."""
     work = tempfile.mkdtemp()
     br = os.path.join(work, "branch")
     os.makedirs(os.path.join(br, ".github", "workflows"))
     shutil.copy(video, os.path.join(br, fname))
     shutil.copy(os.path.join(HERE, "zwift-post.yml"), os.path.join(br, ".github", "workflows", "zwift-post.yml"))
-    json.dump({"title": yt_title, "text": text, "file_name": fname, "privacy": privacy},
+    json.dump({"title": yt_title, "text": text, "file_name": fname, "privacy": privacy, **(extra or {})},
               open(os.path.join(br, "post.json"), "w"), indent=1)
     url = git("remote", "get-url", "origin").strip()
     git("init", "-q", "-b", "zwift-media", cwd=br)
