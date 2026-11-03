@@ -22,6 +22,7 @@ Times are UTC (Amsterdam = UTC+1 in winter, +2 in summer). GitHub's scheduler of
 | `autopost.yml` | Mon & Fri 09:43 | carousel | Instagram carousel |
 | `autopost.yml` | Wed 09:43 / Sat 09:43 | website card / Amazon card | Instagram photo |
 | `autopost.yml` | 14, 15, 21, 22 Nov 12:13 + 20:13 | free-Kindle-day promo Reels | as Reel |
+| `autopost.yml` | daily 10:23, 17:23 | a card for each newly published website Dispatch (nothing if there's none) | Instagram photo |
 | `author-post.yml` | Tue, Thu, Sat 16:37 | next "Hamish talks about the book" episode from the queue | as Reel (YouTube flagged AI-generated) |
 | `author-render.yml` | nightly 01:23 | renders episodes ahead, keeping up to 4 in `author/rendered/` | — |
 | `zwift-post.yml` (on branch `zwift-media`) | on push | KingMonkai Zwift Shorts and photo slideshows | YouTube (KingMonkai) |
@@ -40,6 +41,9 @@ publishes the file without sending it to Make, and *date* re-makes the posts for
   `favourite_lines` and `favourite_share` (best performers repeated on that share of quote posts).
   Rewritten by `tools/analyze.py`.
 - `backgrounds/`, `images/`, `fonts/` — artwork, covers, animated Delta clips and type used by the cards and Reels.
+- Dispatches: the `dispatch` run reads the website's RSS feed (thedrownedconcordat.com/dispatches/feed.xml) and
+  shares the newest Dispatch not yet listed in `log/dispatches_posted.txt` (posts older than 10 days are skipped).
+  Merging a weekly Dispatch PR on the website repo is the only approval: it goes out on Instagram at the next check.
 - `log/posts.csv` — one row per post (time, slot, kind, format, line, caption start). Kept in the repo:
   the rotation and the weekly review read it.
 - `FREE_DAYS` in `auto_poster.py` — dates of Kindle free promotions (US Pacific time). Captions get a

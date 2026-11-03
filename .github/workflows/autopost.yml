@@ -13,12 +13,14 @@ on:
     - cron: '43 9 * * 5'   # Friday extra: carousel
     - cron: '13 12 14,15,21,22 11 *'   # free Kindle days: extra midday Reel
     - cron: '13 20 14,15,21,22 11 *'   # free Kindle days: extra evening Reel
+    - cron: '23 10 * * *'   # every day: share a newly published Dispatch, if there is one
+    - cron: '23 17 * * *'   # every day: second check for a new Dispatch
   workflow_dispatch: # Run it by hand from the Actions tab
     inputs:
       kind:
         description: 'Which card to make'
         type: choice
-        options: [quote, reel, carousel, website, amazon, promo]
+        options: [quote, reel, carousel, website, amazon, promo, dispatch]
         default: quote
       slot:
         description: 'Quote cards only: morning or evening slot'
@@ -67,6 +69,8 @@ jobs:
              || github.event.schedule == '43 9 * * 5' && 'carousel'
              || github.event.schedule == '13 12 14,15,21,22 11 *' && 'promo'
              || github.event.schedule == '13 20 14,15,21,22 11 *' && 'promo'
+             || github.event.schedule == '23 10 * * *' && 'dispatch'
+             || github.event.schedule == '23 17 * * *' && 'dispatch'
              || 'quote' }}
           POST_SLOT: >-
             ${{ github.event_name == 'workflow_dispatch' && inputs.slot

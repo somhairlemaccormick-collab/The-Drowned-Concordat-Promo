@@ -15,11 +15,14 @@ Post kinds (the workflow picks one from the schedule that fired):
             bed and a Book One end card (Instagram Reels, YouTube Shorts, TikTok).
   carousel  Monday and Friday: a swipeable 5-6 slide post ending on the cover.
   website   Wednesday: website card.     amazon  Saturday: Kindle card.
+  dispatch  checked twice a day: when a new Dispatch (weekly blog post) is live
+            on the website, one card sharing it. Otherwise nothing is posted.
 
 Rules: promote only published books (currently Book One). Never Business Time.
 No spoilers: everything here is setting and premise level only.
 """
 
+import html
 import json
 import os
 import random
@@ -616,6 +619,80 @@ def draw_website_card(headline, bg_path, out_path):
     _save(im, out_path)
 
 
+def draw_dispatch_card(headline, bg_path, out_path):
+    """A new Dispatch (blog post): its artwork, its title and the site address."""
+    from PIL import ImageDraw
+
+    im = _darken(_background(bg_path)).convert("RGBA")
+    margin = 90
+    f, lines, size = fit_rich(headline, DISPLAY, W - 2 * margin, 4, range(84, 47, -4))
+    lh = int(size * 1.14)
+    y = H - 330 - lh * len(lines)
+    _kicker(im, margin, y - 86, "NEW DISPATCH · REAL NEWS")
+    draw_rich(im, margin, y, lines, f, lh, CREAM, TEAL)
+    d = ImageDraw.Draw(im)
+    rule_y = y + lh * len(lines) + 28
+    d.line((margin, rule_y, margin + 90, rule_y), fill=ORANGE, width=5)
+    d.text((margin, rule_y + 26), "THEDROWNEDCONCORDAT.COM", font=font(DISPLAY_BLACK, 52), fill=ORANGE)
+    d.text((margin, rule_y + 98), "Dispatches · new every week", font=font(SANS, 30), fill=CREAM)
+    _footer(d)
+    _save(im, out_path)
+
+
+# ------------------------------------------------------------ dispatches ---
+# Dispatches are the website's weekly blog posts. Each is written as a pull request
+# on the website repo; once the author merges it, it appears in the RSS feed and
+# the next "dispatch" run here shares it on Instagram, once.
+
+DISPATCH_FEED = WEBSITE_URL + "dispatches/feed.xml"
+DISPATCH_LOG = ROOT / "log" / "dispatches_posted.txt"
+DISPATCH_MAX_AGE_DAYS = 10  # never share an old post, e.g. after a long outage
+DISPATCH_TAGS = "#climatefiction #sealevelrise #floodrisk #futureoffood #TheDrownedConcordat #bookstagram"
+
+
+def new_dispatch(now=None):
+    """The newest live Dispatch not yet shared, as a dict, or None."""
+    import requests
+    import xml.etree.ElementTree as ET
+    from email.utils import parsedate_to_datetime
+
+    r = requests.get(DISPATCH_FEED, timeout=30)
+    r.raise_for_status()
+    done = set(DISPATCH_LOG.read_text(encoding="utf-8").split()) if DISPATCH_LOG.exists() else set()
+    now = now or datetime.now(timezone.utc)
+    for item in ET.fromstring(r.content).iter("item"):  # newest first
+        link = (item.findtext("link") or "").strip()
+        slug = link.rstrip("/").rsplit("/", 1)[-1]
+        when = parsedate_to_datetime(item.findtext("pubDate"))
+        if not slug or slug in done or (now - when).days > DISPATCH_MAX_AGE_DAYS:
+            continue
+        return {"slug": slug, "url": link, "title": (item.findtext("title") or "").strip(),
+                "summary": (item.findtext("description") or "").strip()}
+    return None
+
+
+def dispatch_background(url):
+    """The post's own artwork (og:image), saved locally; a stock background if that fails."""
+    import requests
+
+    try:
+        page = requests.get(url, timeout=30).text
+        m = re.search(r'property="og:image" content="([^"]+)"', page)
+        if m:
+            name = m.group(1).rsplit("/", 1)[-1]
+            local = [p for p in load_backgrounds() if p.name.split("-", 1)[-1] == name]
+            if local:
+                return local[0]
+            img = requests.get(m.group(1), timeout=30)
+            img.raise_for_status()
+            path = ROOT / "dispatch-bg.jpg"  # temporary, not committed
+            path.write_bytes(img.content)
+            return path
+    except Exception as e:  # noqa: BLE001 - any failure falls back to a stock background
+        print(f"Couldn't fetch the post's artwork ({e}); using a stock background.")
+    return load_backgrounds()[0]
+
+
 # ---------------------------------------------------- weekly link posts ---
 # Extra posts on top of the daily quote card: Wednesday points to the website,
 # Saturday to Amazon. Each has a few headline/caption variants that rotate weekly.
@@ -960,7 +1037,7 @@ def youtube_title(text, limit=100):
 def post_kind():
     """Which post to make. The workflow sets POST_KIND (and POST_SLOT for quote cards) from the schedule that fired."""
     kind = os.environ.get("POST_KIND", "").strip().lower()
-    return kind if kind in {"quote", "reel", "website", "amazon", "carousel"} else "quote"
+    return kind if kind in {"quote", "reel", "website", "amazon", "carousel", "dispatch"} else "quote"
 
 
 START = datetime(2026, 10, 22, tzinfo=timezone.utc)  # day 0 of the quote rotation
@@ -1079,7 +1156,23 @@ def build(n=None, kind=None):
     prompt = COMMENT_PROMPTS[n % len(COMMENT_PROMPTS)]
     paths = None
 
-    if kind == "website":
+    if kind == "dispatch":
+        d = new_dispatch()
+        if not d:
+            print("No new Dispatch to share.")
+            POST_FILE.write_text(json.dumps({"kind": "skip"}), encoding="utf-8")
+            return {"kind": "skip"}
+        bg = dispatch_background(d["url"])
+        draw_dispatch_card(d["title"], bg, card)
+        caption = (f"🌊 New Dispatch: {d['title']}\n\n{html.unescape(d['summary'])}\n\n"
+                   f"Real news that could have come from behind the wall. Read it on the website, link in bio.\n"
+                   f"🔗 {d['url']}\n\n{DISPATCH_TAGS}")
+        source = bg.name
+        log_fmt, log_line = "dispatch", d["title"]
+        DISPATCH_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with DISPATCH_LOG.open("a", encoding="utf-8") as fh:
+            fh.write(d["slug"] + "\n")
+    elif kind == "website":
         headline, body = WEBSITE_POSTS[week % len(WEBSITE_POSTS)]
         bg = load_backgrounds()[week % len(load_backgrounds())]
         draw_website_card(headline, bg, card)
