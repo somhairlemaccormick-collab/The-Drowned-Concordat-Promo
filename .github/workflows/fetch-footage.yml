@@ -1,0 +1,44 @@
+# Searches NASA and Wikimedia Commons for free-to-use footage, trims candidates to 15 s and adds them,
+# with credits.csv and a contact sheet, to the `footage` branch (kept off main to keep main small).
+name: Fetch footage
+
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: 'Search terms, separated by commas'
+        default: 'hurricane, storm surge, coastal flooding, sea level rise, flooded city, hurricane satellite'
+      per_query:
+        description: 'Max clips per search term per source'
+        default: '3'
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get the footage branch (or start it)
+        run: |
+          if git ls-remote --exit-code --heads origin footage; then
+            git fetch -q --depth 1 origin footage && git worktree add -q fb FETCH_HEAD
+          else
+            mkdir fb && cd fb && git init -q -b footage
+          fi
+      - name: Search and download
+        env:
+          QUERIES: ${{ inputs.queries }}
+          PER_QUERY: ${{ inputs.per_query }}
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          pip install -q pillow
+          mapfile -t Q < <(python3 -c "import os; [print(q.strip()) for q in os.environ['QUERIES'].split(',') if q.strip()]")
+          python3 tools/fetch_footage.py fb/footage "${Q[@]}" 2>&1 | tee fb/footage/_last_fetch.log
+      - name: Save to the footage branch
+        run: |
+          cd fb && git add -A
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" commit -qm "Footage fetch run ${{ github.run_number }}" || exit 0
+          git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}" HEAD:refs/heads/footage
