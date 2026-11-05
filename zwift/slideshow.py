@@ -84,7 +84,7 @@ def render(out, photos, hook, sub, music=None, outro=None):
     dur = total / FPS
     slides_out = os.path.join(tmp, "slides.mp4")
     cmd = ["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}",
-           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+           "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-preset", "medium", "-crf", "27", "-maxrate", "2.5M", "-bufsize", "5M",
            "-pix_fmt", "yuv420p", slides_out]
     p = subprocess.Popen(cmd, stdin=subprocess.PIPE)
     for i, (bg, fg, mode) in enumerate(slides):
@@ -117,10 +117,10 @@ def render(out, photos, hook, sub, music=None, outro=None):
         cmd += ["-stream_loop", "-1", "-i", music]
         cmd += ["-map", vmap, "-map", f"{nin}:a",
                 "-af", f"atrim=0:{dur:.3f},afade=t=in:d=0.5,afade=t=out:st={dur - 2:.3f}:d=2",
-                "-c:a", "aac", "-b:a", "160k", "-t", f"{dur:.3f}"]
+                "-c:a", "aac", "-b:a", "128k", "-t", f"{dur:.3f}"]
     else:
         cmd += ["-map", vmap]
-    cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
+    cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "27", "-maxrate", "2.5M", "-bufsize", "5M", "-pix_fmt", "yuv420p",
             "-movflags", "+faststart", out]
     if subprocess.call(cmd):
         sys.exit("ffmpeg failed (final mux)")

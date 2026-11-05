@@ -130,7 +130,7 @@ def main():
     clips = days.get(date)
     if not clips:
         sys.exit(f"No clips for {date}")
-    clips = clips[:8]  # 8 x 15 s = 2 min, well inside the 3-minute Short limit
+    clips = clips[:4]  # 4 x 15 s = 1 min: Shorts that short get watched to the end, and the file stays small
 
     secs = 15 * len(clips)
     n = len(done)  # rotate hooks and hashtags one step per Short posted

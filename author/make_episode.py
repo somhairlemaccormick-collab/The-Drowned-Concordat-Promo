@@ -219,7 +219,7 @@ def compose(args):
     out = AUTHOR / "rendered" / f"{ep['id']}.mp4"
     out.parent.mkdir(exist_ok=True)
     run("ffmpeg", "-v", "error", "-y", *inputs, "-filter_complex", chain, "-map", f"[c{k}]", "-map", "0:a",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-c:a", "copy",
+        "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-maxrate", "2M", "-bufsize", "4M", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k",
         "-movflags", "+faststart", str(out))
     print("Rendered into the queue:", out, f"{sum(d for _, d in segs):.1f}s")
 

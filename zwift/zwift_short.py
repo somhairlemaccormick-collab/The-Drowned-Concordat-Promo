@@ -98,8 +98,8 @@ def build(out, title, sub, clips, music=None):
         amap = "[am]"
     cmd = ["ffmpeg", "-v", "error", "-y", *inputs, "-i", png, *extra,
            "-filter_complex", fc, "-map", "[vo]", "-map", amap, "-shortest",
-           "-c:v", "libx264", "-preset", "veryfast", "-crf", "21", "-pix_fmt", "yuv420p",
-           "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out]
+           "-c:v", "libx264", "-preset", "medium", "-crf", "28", "-maxrate", "2.5M", "-bufsize", "5M", "-pix_fmt", "yuv420p",
+           "-c:a", "aac", "-b:a", "96k", "-movflags", "+faststart", out]
     subprocess.run(cmd, check=True)
 
 
