@@ -38,7 +38,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add backgrounds
+          git add backgrounds ready_posts 2>/dev/null || git add backgrounds
           git commit -m "New images from the Drive photos folder" || { echo "No new images."; exit 0; }
           git pull --rebase origin main
           git push origin HEAD:main

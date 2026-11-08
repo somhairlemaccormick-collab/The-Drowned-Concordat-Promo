@@ -1,0 +1,8 @@
+# Images in the Drive folder "Drowned Concordat Content Photos" that are NOT used as card/Reel backgrounds.
+# One name per line (without extension, any case). A line ending in * matches every name that starts with it.
+# Spoiler-sensitive for Book One:
+abraham_verhagen_portrait
+the_gleaners_gang_portrait
+the_gantry_gang_portrait
+# Finished posts with their own text: copied to ready_posts/ instead, to post as they are.
+instagram_post_*
