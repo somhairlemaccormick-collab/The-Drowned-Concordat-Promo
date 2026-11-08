@@ -6,3 +6,11 @@ the_gleaners_gang_portrait
 the_gantry_gang_portrait
 # Finished posts with their own text: copied to ready_posts/ instead, to post as they are.
 instagram_post_*
+# Same subjects in the subfolders (only matter if bigger versions are uploaded)
+characters_abraham_verhagen
+gangs_the_gantry
+gangs_the_gleaners
+gangs_groups_gantry_group
+gangs_groups_gleaners_group
+gangs_closeups_gantry_*
+gangs_closeups_gleaner_*
