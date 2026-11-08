@@ -29,7 +29,7 @@ jobs:
       - run: pip install -q gdown pillow pillow-heif
       - name: Download the folder
         run: |
-          gdown --folder "$FOLDER_URL" -O dl --quiet --remaining-ok || {
+          gdown --folder "$FOLDER_URL" -O dl --quiet || {
             echo "::warning::Could not read the Drive folder. Is it shared as 'Anyone with the link: Viewer'? (An empty folder also ends up here.)"; mkdir -p dl; }
           find dl -type f | head -60
       - name: Add new images
