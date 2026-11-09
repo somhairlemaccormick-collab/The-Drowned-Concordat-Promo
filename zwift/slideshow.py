@@ -15,6 +15,12 @@ order (a topic can pin one with "outro": "<file name>"). Clips are stored ready-
 import argparse, json, os, subprocess, sys, tempfile
 from PIL import Image, ImageFilter, ImageOps, ImageEnhance
 
+try:
+    import pillow_heif
+    pillow_heif.register_heif_opener()  # iPhone .heic photos
+except ImportError:
+    pass
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from zwift_short import overlay_png, W, H  # noqa: E402
