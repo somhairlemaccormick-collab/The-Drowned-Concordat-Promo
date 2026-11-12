@@ -1,0 +1,27 @@
+# Copied into each commit on the zwift-media branch. When a new Short is pushed there,
+# this sends it to Make, which uploads it to the KingMonkai Cycling YouTube channel.
+name: Zwift Short to YouTube
+
+on:
+  push:
+    branches: [zwift-media]
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send to Make
+        env:
+          SOCIAL_WEBHOOK_URL: ${{ secrets.SOCIAL_WEBHOOK_URL }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          post = json.load(open("post.json"))
+          repo, sha = os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_SHA"]
+          post["kind"] = "zwift"
+          post["video_url"] = f"https://raw.githubusercontent.com/{repo}/{sha}/{post['file_name']}"
+          req = urllib.request.Request(os.environ["SOCIAL_WEBHOOK_URL"], data=json.dumps(post).encode(),
+                                       headers={"Content-Type": "application/json"})
+          print(post["title"], "->", urllib.request.urlopen(req, timeout=60).read().decode())
+          PY
