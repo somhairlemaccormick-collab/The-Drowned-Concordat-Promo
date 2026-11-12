@@ -1207,7 +1207,13 @@ def build(n=None, kind=None):
     elif kind == "amazon":
         headline, body = AMAZON_POSTS[week % len(AMAZON_POSTS)]
         cover = COVERS[week % len(COVERS)]
-        draw_amazon_card(headline, cover, card)
+        if free_day():
+            headline = "Free on Kindle this weekend"
+            body = ("📖 The Rise of the Covenant, Book One of The Drowned Concordat, is FREE on Kindle this "
+                    "weekend only. Download it, and if it grips you, a short Amazon review helps enormously.")
+            draw_amazon_card(headline, cover, card, subline="Free download · link in caption")
+        else:
+            draw_amazon_card(headline, cover, card)
         caption, source = f"{body}\n\n🔗 {AMAZON_URL}\n\n{HASHTAGS}", cover.name
         log_fmt, log_line = "amazon", headline
     elif kind == "carousel":
@@ -1224,6 +1230,9 @@ def build(n=None, kind=None):
         prompt = COMMENT_PROMPTS[k % len(COMMENT_PROMPTS)]
         caption, source = f"{plain(text)}\n\n{prompt}\n\n{cta}\n\n{HASHTAGS}", f"{bg.name} ({fmt})"
         log_fmt, log_line = fmt, text
+
+    if kind in {"quote", "website", "dispatch"} and free_day():
+        stamp_free_banner(card)
 
     # keep only the most recent cards and videos
     for pattern, keep in (("*.jpg", KEEP_CARDS), ("*.mp4", KEEP_VIDEOS)):
@@ -1269,8 +1278,12 @@ def promo_line(now=None):
     """Extra caption line for the free-weekend promotion, or None outside it."""
     from zoneinfo import ZoneInfo
     from datetime import date, timedelta
-    today = (now or datetime.now(timezone.utc)).astimezone(ZoneInfo("America/Los_Angeles")).date()
+    now = now or datetime.now(timezone.utc)
+    today = now.astimezone(ZoneInfo("America/Los_Angeles")).date()
     free = sorted(date.fromisoformat(d) for d in FREE_DAYS)
+    if today not in free and now.astimezone(timezone.utc).date() in free:
+        # European morning of a free day: Amazon's free day starts at midnight Pacific (09:00 Amsterdam)
+        return (f"🎁 FREE on Kindle this weekend, starting today. Grab your copy: {AMAZON_URL}", "top")
     if today in free:
         last = today == free[-1] or (today + timedelta(days=1)) not in free
         return ("🎁 FREE on Kindle " + ("today only, last day" if last else "today and tomorrow") +
@@ -1285,6 +1298,25 @@ def promo_line(now=None):
             return ("Picked up The Drowned Concordat free this weekend? A short, honest Amazon review "
                     "helps other readers find it, and means a lot.", "bottom")
     return None
+
+
+def free_day(now=None):
+    """True on a free-promotion day (from the European morning until Amazon's free day ends)."""
+    p = promo_line(now)
+    return bool(p and p[1] == "top")
+
+
+def stamp_free_banner(path):
+    """Orange 'FREE ON KINDLE' ribbon across the bottom of a finished card (over the small footer line)."""
+    from PIL import Image, ImageDraw
+
+    im = Image.open(path).convert("RGB")
+    d = ImageDraw.Draw(im)
+    h = 86
+    d.rectangle((0, im.height - h, im.width, im.height), fill=ORANGE)
+    spaced(d, (im.width // 2, im.height - h + 22), "FREE ON KINDLE THIS WEEKEND", font(DISPLAY_BLACK, 40), INK,
+           tracking=4, anchor="ma")
+    im.save(path, quality=92)
 
 
 def with_promo(caption, now=None):
