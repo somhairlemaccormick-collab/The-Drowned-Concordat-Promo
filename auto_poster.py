@@ -1037,7 +1037,7 @@ def youtube_title(text, limit=100):
 def post_kind():
     """Which post to make. The workflow sets POST_KIND (and POST_SLOT for quote cards) from the schedule that fired."""
     kind = os.environ.get("POST_KIND", "").strip().lower()
-    return kind if kind in {"quote", "reel", "website", "amazon", "carousel", "dispatch"} else "quote"
+    return kind if kind in {"quote", "reel", "website", "amazon", "carousel", "dispatch", "promo"} else "quote"
 
 
 START = datetime(2026, 10, 22, tzinfo=timezone.utc)  # day 0 of the quote rotation
