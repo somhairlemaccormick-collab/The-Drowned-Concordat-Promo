@@ -1234,6 +1234,12 @@ def build(n=None, kind=None):
         log_fmt, log_line = f"carousel-{index % len(CAROUSELS) + 1}", CAROUSELS[index % len(CAROUSELS)]["slides"][0][1]
     else:
         slot = post_slot()
+        if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and LOG_FILE.exists() and any(
+                r.startswith(stamp) and r[17:].startswith(f"{slot},quote,")
+                for r in LOG_FILE.read_text(encoding="utf-8").splitlines()):
+            print(f"The {slot} quote card already went out today (manual run).")
+            POST_FILE.write_text(json.dumps({"kind": "skip"}), encoding="utf-8")
+            return {"kind": "skip"}
         card = GENERATED / f"{stamp}-{kind}-{slot}-{run}.jpg"
         line, bg, cta, k = choose_quote(n, slot)
         fmt, text = draw_quote(line, bg, card, k)
