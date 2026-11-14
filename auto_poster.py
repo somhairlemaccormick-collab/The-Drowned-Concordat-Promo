@@ -1195,7 +1195,17 @@ def build(n=None, kind=None):
             return {"kind": "skip"}
         from zoneinfo import ZoneInfo
         pt = datetime.now(timezone.utc).astimezone(ZoneInfo("America/Los_Angeles"))
-        i = sorted(FREE_DAYS).index(pt.strftime("%Y-%m-%d")) * 2 + (1 if datetime.now(timezone.utc).hour >= 17 else 0)
+        # count today's promo Reels already posted, so late or manual runs never post more than two a day
+        done = 0
+        if LOG_FILE.exists():
+            day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            done = sum(1 for r in LOG_FILE.read_text(encoding="utf-8").splitlines()
+                       if r.startswith(day) and ",promo," in r)
+        if done >= 2:
+            print("Both free-day Reels already posted today.")
+            POST_FILE.write_text(json.dumps({"kind": "skip"}), encoding="utf-8")
+            return {"kind": "skip"}
+        i = sorted(FREE_DAYS).index(pt.strftime("%Y-%m-%d")) * 2 + done
         text = PROMO_REEL_LINES[i % len(PROMO_REEL_LINES)]
         bg = load_backgrounds()[(n + i) % len(load_backgrounds())]
         card = card.with_suffix(".mp4")
