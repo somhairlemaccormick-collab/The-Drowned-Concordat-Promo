@@ -1255,7 +1255,7 @@ def build(n=None, kind=None):
         for p in sorted(GENERATED.glob(pattern))[:-keep]:
             p.unlink()
 
-    if os.environ.get("GITHUB_ACTIONS") == "true":
+    if os.environ.get("GITHUB_ACTIONS") == "true" and os.environ.get("DRY_RUN", "").lower() != "true":
         log_post(post_slot() if kind == "quote" else "-", kind, log_fmt, log_line, caption)
 
     post = {
