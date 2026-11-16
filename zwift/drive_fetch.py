@@ -41,9 +41,16 @@ def main():
     if len(a) != 3:
         sys.exit(__doc__)
     src, photos, rel = a
-    with open(src, encoding="utf-8") as f:
-        raw = f.read()
-    d = json.loads(raw)
+    out = os.path.join(photos, rel)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(src, "rb") as f:
+        blob = f.read()
+    if blob[:2] == b"\xff\xd8" or blob[:4] == b"\x89PNG":  # connector already saved the raw image
+        with open(out, "wb") as f:
+            f.write(blob)
+        print(out, os.path.getsize(out))
+        return
+    d = json.loads(blob.decode("utf-8"))
     if isinstance(d, list):  # some clients wrap the result as [{"type":"text","text": "..."}]
         d = json.loads(d[0]["text"])
     out = os.path.join(photos, rel)
