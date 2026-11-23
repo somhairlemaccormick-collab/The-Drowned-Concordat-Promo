@@ -6,3 +6,4 @@ etape-2017-izoard
 etape-2022-alpe-dhuez
 amstel-2025-limburg
 etape-2016-tricolore
+klim-classic-2022
