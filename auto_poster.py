@@ -1198,9 +1198,16 @@ def build(n=None, kind=None):
         # count today's promo Reels already posted, so late or manual runs never post more than two a day
         done = 0
         if LOG_FILE.exists():
-            day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            # count by the Pacific-time day (Amazon's), so a late run after midnight UTC still counts
+            pt_tz = ZoneInfo("America/Los_Angeles")
+
+            def pt_day(r):
+                try:
+                    return datetime.strptime(r[:16], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc).astimezone(pt_tz).date()
+                except ValueError:
+                    return None
             done = sum(1 for r in LOG_FILE.read_text(encoding="utf-8").splitlines()
-                       if r.startswith(day) and ",promo," in r)
+                       if ",promo," in r and pt_day(r) == pt.date())
         if done >= 2:
             print("Both free-day Reels already posted today.")
             POST_FILE.write_text(json.dumps({"kind": "skip"}), encoding="utf-8")
