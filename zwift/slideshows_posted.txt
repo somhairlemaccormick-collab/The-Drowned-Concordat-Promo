@@ -7,3 +7,4 @@ etape-2022-alpe-dhuez
 amstel-2025-limburg
 etape-2016-tricolore
 klim-classic-2022
+etape-2025-banana
