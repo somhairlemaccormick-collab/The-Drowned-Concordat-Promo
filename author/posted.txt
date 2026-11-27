@@ -10,3 +10,4 @@ free-weekend-1
 06-two-sisters
 free-weekend-2
 06b-the-world-it-knew
+07-faith
